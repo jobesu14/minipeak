@@ -1,0 +1,14 @@
+/build
+
+# Compiled Python bytecode
+*.py[cod]
+
+*.egg-info/
+__pycache__/
+*/__pycache__/*
+.idea/
+*venv/
+*.mypy_cache/
+
+# VSCode
+.vscode/

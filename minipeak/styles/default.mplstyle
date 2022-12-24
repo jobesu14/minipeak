@@ -1,0 +1,126 @@
+## ***************************************************************************
+## * LINES                                                                   *
+## ***************************************************************************
+lines.linewidth: 0.5               # line width in points
+lines.linestyle: -                 # solid line
+lines.marker:          None        # the default marker
+lines.markeredgewidth: 0.5         # the line width around the marker symbol
+lines.markersize:      6           # marker size, in points
+lines.dash_joinstyle:  round       # {miter, round, bevel}
+lines.dash_capstyle:   butt        # {butt, round, projecting}
+lines.solid_joinstyle: round       # {miter, round, bevel}
+lines.solid_capstyle:  projecting  # {butt, round, projecting}
+lines.antialiased: True            # render lines in antialiased (no jaggies)
+lines.dashed_pattern: 15, 8
+
+
+## ***************************************************************************
+## * PATCHES                                                                 *
+## ***************************************************************************
+patch.linewidth:       0.8      # edge width in points.
+patch.edgecolor:       0.2  # if forced, or patch is not filled
+
+
+## ***************************************************************************
+## * HATCHES                                                                 *
+## ***************************************************************************
+hatch.linewidth: 0.5
+
+
+## ***************************************************************************
+## * FONT                                                                    *
+## ***************************************************************************
+font.family:  sans-serif
+font.style:   normal
+font.variant: normal
+font.weight:  normal
+font.stretch: normal
+font.size:    10.0
+
+font.serif:      Helvetica, DejaVu Serif, Bitstream Vera Serif, Computer Modern Roman, New Century Schoolbook, Century Schoolbook L, Utopia, ITC Bookman, Bookman, Nimbus Roman No9 L, Times New Roman, Times, Palatino, Charter, serif
+font.sans-serif: Helvetica, DejaVu Sans, Bitstream Vera Sans, Computer Modern Sans Serif, Lucida Grande, Verdana, Geneva, Lucid, Arial, Helvetica, Avant Garde, sans-serif
+font.cursive:    Helvetica, Apple Chancery, Textile, Zapf Chancery, Sand, Script MT, Felipa, cursive
+font.fantasy:    Helvetica, Comic Neue, Comic Sans MS, Chicago, Charcoal, ImpactWestern, Humor Sans, xkcd, fantasy
+font.monospace:  Helvetica, DejaVu Sans Mono, Bitstream Vera Sans Mono, Computer Modern Typewriter, Andale Mono, Nimbus Mono L, Courier New, Courier, Fixed, Terminal, monospace
+
+
+## ***************************************************************************
+## * AXES                                                                    *
+## ***************************************************************************
+axes.facecolor:     white   # axes background color
+axes.linewidth:     0.5     # edge linewidth
+axes.grid:          True   # display grid or not
+axes.grid.axis:     both    # which axis the grid should apply to
+axes.grid.which:    major   # gridlines at {major, minor, both} ticks
+axes.titlesize:     13   # fontsize of the axes title
+axes.labelsize:     10.5  # fontsize of the x any y labels
+axes.labelcolor:    0.15
+axes.axisbelow:     line    # draw axis gridlines and ticks:
+                             #     - below patches (True)
+                             #     - above patches but below lines ('line')
+                             #     - above all (False)
+axes.spines.top:    False
+axes.spines.right:  False
+axes.prop_cycle: cycler('color', ['0072bd', 'd95319', 'edb120', '7e2f8e', '76ac30', '4dbeee', 'a2142e'])
+                  # color cycle for plot lines as list of string colorspecs:
+                  # single letter, long name, or web-style hex
+                  # As opposed to all other paramters in this file, the color
+                  # values must be enclosed in quotes for this parameter,
+                  # e.g. '1f77b4', instead of 1f77b4.
+                  # See also https://matplotlib.org/tutorials/intermediate/color_cycle.html
+                  # for more details on prop_cycle usage.
+axes.autolimit_mode: data  # How to scale axes limits to the data.  By using:
+                            #     - "data" to use data limits, plus some margin
+                            #     - "round_numbers" move to the nearest "round" number
+
+## ***************************************************************************
+## * TICKS                                                                   *
+## ***************************************************************************
+xtick.major.size:    6     # major tick size in points
+xtick.color:         0.15   # color of the tick labels
+xtick.labelsize:     9  # fontsize of the tick labels
+xtick.direction:     in     # direction: {in, out, inout}
+ytick.major.size:    6     # major tick size in points
+ytick.color:         0.15   # color of the tick labels
+ytick.labelsize:     9  # fontsize of the tick labels
+ytick.direction:     in     # direction: {in, out, inout}
+
+
+## ***************************************************************************
+## * GRIDS                                                                   *
+## ***************************************************************************
+grid.color:     0.15  # grid color
+grid.linewidth: 0.8     # in points
+grid.alpha:     0.15     # transparency, between 0.0 and 1.0
+
+
+## ***************************************************************************
+## * LEGEND                                                                  *
+## ***************************************************************************
+legend.loc:           upper right
+legend.frameon:       True     # if True, draw the legend on a background patch
+legend.edgecolor:     0.2      # background patch boundary color
+legend.fontsize:      9
+
+## Dimensions as fraction of fontsize:
+legend.labelspacing:  0.15  # the vertical space between the legend entries
+
+
+## ***************************************************************************
+## * FIGURE                                                                  *
+## ***************************************************************************
+## See https://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure
+figure.facecolor:   0.94     # figure facecolor
+
+## Figure layout
+figure.autolayout: True  # When True, automatically adjust subplot
+                         # parameters to make the plot fit the figure
+                         # using `tight_layout`
+
+
+## ***************************************************************************
+## * INTERACTIVE KEYMAPS                                                     *
+## ***************************************************************************
+keymap.back: left, c, backspace, MouseButton.BACK, ctrl+z  # forward / backward keys
+keymap.zoom: o, z                 # zoom mnemonic
+keymap.quit_all: alt+w               # close all figures
