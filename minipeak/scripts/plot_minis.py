@@ -13,7 +13,7 @@ def _parse_args() -> Path:
     return args.abf_file
 
 
-def plot_minis(abf_file) -> None:
+def plot_electrophy(abf_file) -> None:
     # load data from abf file
     abf = pyabf.ABF(abf_file)
     time = abf.sweepX
@@ -32,7 +32,7 @@ def main() -> None:
     ps.set_style('default')
 
     abf_file = _parse_args()
-    plot_minis(abf_file)
+    plot_electrophy(abf_file)
 
 
 if __name__ == '__main__':
