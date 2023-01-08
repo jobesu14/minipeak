@@ -164,8 +164,8 @@ def filter_data_window(all_amplitude: np.ndarray, all_minis: np.ndarray) -> \
            np.take(all_minis, indices_to_keep, axis=0)
 
 
-def save_wrong_pred_to_image(X, y_pred, y, output_folder: Path) -> None:
-    for amplitude, pred, target in zip(X, y_pred, y):
+def save_wrong_pred_to_image(x, y_pred, y, output_folder: Path) -> None:
+    for amplitude, pred, target in zip(x, y_pred, y):
         pred = pred[0]
         target = target[0]
         # pred = torch.sigmoid(pred)

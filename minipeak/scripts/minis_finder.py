@@ -4,12 +4,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from minipeak.utils import load_training_dataset, save_wrong_pred_to_image, filter_data_window
-
-# Write a python script using pytorch to train a CNN model that will detect the
-# present of discriminative minis in a time window. The traning data is a set of
-# panda frame having an 'amplitude' field and a 'minis' for each timestamp. The size
-# of the time window is 100ms and the sampling rate is 1000Hz.
+from minipeak.utils import \
+    load_training_dataset, save_wrong_pred_to_image, filter_data_window
 
 
 def _parse_args() -> argparse.Namespace:
@@ -26,7 +22,7 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# Define the CNN model (ChatGPT)
+# Define the 1D CNN model
 class CNN(nn.Module):
     def __init__(self, window_size: int):
         super(CNN, self).__init__()
@@ -59,7 +55,8 @@ class CNN(nn.Module):
 
 def main() -> None:
     args = _parse_args()
-    device = torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
+    device = \
+        torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
     print(f'Using device: {device}')
     
     # create experiment folder if doesn't exist
@@ -105,6 +102,11 @@ def main() -> None:
         # y_pred = torch.sigmoid(y_pred)
         correct = (y_pred > 0.5) == (y_true > 0.5)
         return correct.float().mean()
+    
+    no_peaks_zone = int(args.window_size/4)
+    def contains_peaks(peak_window, no_peaks_padding: int):
+        return torch.any(peak_window[:, :, no_peaks_padding:-no_peaks_padding],
+                         dim=2).float()
 
     # train model
     for epoch in range(args.epochs):
@@ -124,7 +126,7 @@ def main() -> None:
             y_pred = model(X)
             
             # Check if a minipeak is part of this batch
-            y = torch.any(y[:, :, :], dim=2).float()
+            y = contains_peaks(y, peak_padding=no_peaks_zone)
         
             # Compute loss and accuracy
             loss = loss_fn(y_pred, y)
@@ -155,7 +157,7 @@ def main() -> None:
         y_pred = model(x)
 
         # Check if a minipeak is part of this batch
-        y = torch.any(y[:, :, :], dim=2).float()
+        y = contains_peaks(y, peak_padding=no_peaks_zone)
 
         # Compute the loss and accuracy
         loss = loss_fn(y_pred, y)
@@ -166,7 +168,7 @@ def main() -> None:
         val_acc += acc.item()
         
         # Save the wrong prediction to image for investigation
-        save_wrong_pred_to_image(X, y_pred, y, image_path)
+        save_wrong_pred_to_image(x, y_pred, y, image_path)
 
     # Print the validation loss and accuracy
     print(f'Validation: loss={val_loss / (i+1):.4f}, accuracy={val_acc / (i+1):.4f}')
