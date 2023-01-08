@@ -1,4 +1,6 @@
 from typing import Tuple
+import uuid
+from matplotlib import pyplot as plt
 import numpy as np
 from pathlib import Path
 import  pandas as pd
@@ -75,52 +77,110 @@ def load_experiment_from_csv(csv_file: Path) -> pd.DataFrame:
     return experiment_df
 
 
-def load_training_dataset(folder: Path, data_window_size: int = 100) \
+def split_into_overlapping_windows(time_series, window_size: int, overlap: int):
+    # Make sure time_series has a length which is a multiple of window_size,
+    # if it is not the case fill with zeros
+    if len(time_series) % window_size != 0:
+        time_series = np.pad(time_series,
+                             (0, window_size - len(time_series) % window_size),
+                             mode='constant')
+
+    # Split time series into overlapping windows
+    n_windows = int((len(time_series) - overlap) / (window_size - overlap))
+    windows = np.empty((n_windows, window_size))
+    t = 0
+    for i in range(n_windows):
+        windows[i] = time_series[t:t+window_size]
+        t += window_size - overlap
+    return windows
+
+
+def convert_minis_to_amplitude(amplitude: np.ndarray, minis: np.ndarray) -> \
+        Tuple[np.ndarray, np.ndarray]:
+    peaks_time = []
+    peaks_amp = []
+    for t, (amp, mini) in enumerate(zip(amplitude, minis)):
+        if mini:
+            peaks_time.append(t)
+            peaks_amp.append(amp)
+    return np.array(peaks_time), np.array(peaks_amp)
+
+
+def load_windowed_dataset(csv_file: Path, window_size: int = 100, overlap: int = 0) \
+        -> Tuple[np.ndarray, np.ndarray]:
+    data_df = load_experiment_from_csv(csv_file)
+
+    # Split the data into amplitude (input) and minis (output) variables
+    amplitude = data_df['amplitude'].values
+    minis = data_df['minis'].astype('bool').values
+
+    amp_win= split_into_overlapping_windows(amplitude, window_size, int(window_size/2))
+    minis_win = split_into_overlapping_windows(minis, window_size, int(window_size/2))
+
+    return amp_win, minis_win
+
+
+def load_training_dataset(folder: Path, window_size: int = 100) \
         -> torch.utils.data.TensorDataset:
     csv_files = folder.glob('*.csv')
     
-    all_X = np.empty((0, 1, data_window_size))
-    all_y = np.empty((0, 1))
+    all_X = np.empty((0, 1, window_size))
+    all_y = np.empty((0, 1, window_size))
     
     for csv_file in csv_files:
-        data_df = load_experiment_from_csv(csv_file)
-
-        # Split the data into input (X) and output (y) variables
-        X = data_df['amplitude'].values
-        y = data_df['minis'].astype('bool').values
+        X, y = load_windowed_dataset(csv_file, window_size, int(window_size/2))
         
-        # Make sure X and y arrays have a length which is a multiple of args.window_size,
-        # if it is not the case fill with zeros
-        if len(X) % data_window_size != 0:
-            X = np.pad(X, (0, data_window_size - len(X) % data_window_size), mode='constant')
-            y = np.pad(y, (0, data_window_size - len(y) % data_window_size), mode='constant')
-
-        X = torch.from_numpy(X).float().view(-1, 1, data_window_size)
-        y = torch.from_numpy(y).float().view(-1, 1, data_window_size)
-        y = torch.any(y[:, :, :], dim=2).float()
-
-        all_X = np.concatenate([all_X, X], axis=0)
-        all_y = np.concatenate([all_y, y], axis=0)    
-
-    all_X = torch.from_numpy(all_X).float()
-    all_y = torch.from_numpy(all_y).float()
-    return torch.utils.data.TensorDataset(all_X, all_y)
-
-
-def filter_data_window(all_X, all_y, ratio: float):
-    # TODO: implement this function
-    pass
-
-    # Get same amount of data without minis as data with minis
-    win_mini_indices = np.nonzero(all_y)
-    print(f'Window data with a minis 1 =  '
-          f'{100 * len(win_mini_indices) / len(all_y)}%')
-    nb_win_with_minis = len(all_y) - len(win_without_mini_indices)
-    win_without_mini_indices = np.random.choice(win_without_mini_indices,
-                                                size=nb_win_with_minis, replace=False)
-    print(f'Window data without a minis 2 =  '
-          f'{100 * len(win_without_mini_indices) / len(all_y)}%')
+        X = X.reshape(-1, 1, window_size)
+        y = y.reshape(-1, 1, window_size)
     
+        all_X = np.concatenate([all_X, X], axis=0)
+        all_y = np.concatenate([all_y, y], axis=0)
 
-    all_X = torch.from_numpy(all_X[win_without_mini_indices::]).float()
-    all_y = torch.from_numpy(all_y[win_without_mini_indices:]).float()
+    return all_X, all_y
+
+
+def filter_data_window(all_amplitude: np.ndarray, all_minis: np.ndarray) -> \
+        Tuple[np.ndarray, np.ndarray]:
+    # Get same amount of data with and without minis in them.
+    win_minis_indices = []
+    win_no_minis_indices = []
+    for i, mini_win in enumerate(all_minis):
+        if np.any(mini_win, axis=1):
+            win_minis_indices.append(i)
+        else:
+            win_no_minis_indices.append(i)
+
+    if len(win_minis_indices) < len(win_no_minis_indices):
+        win_no_minis_indices = np.random.choice(win_no_minis_indices,
+                                                size=len(win_minis_indices),
+                                                replace=False)
+    else:
+        win_minis_indices = np.random.choice(win_minis_indices,
+                                             size=len(win_no_minis_indices),
+                                             replace=False)
+    indices_to_keep = np.concatenate([win_minis_indices, win_no_minis_indices])
+
+    return np.take(all_amplitude, indices_to_keep, axis=0), \
+           np.take(all_minis, indices_to_keep, axis=0)
+
+
+def save_wrong_pred_to_image(X, y_pred, y, output_folder: Path) -> None:
+    for amplitude, pred, target in zip(X, y_pred, y):
+        pred = pred[0]
+        target = target[0]
+        # pred = torch.sigmoid(pred)
+        correct = (pred > 0.5) == (target > 0.5)
+        if not correct:
+            output_file = f"{output_folder}/{uuid.uuid4()}.png"
+            save_window_to_image(amplitude[0].numpy(), pred > 0.5, target > 0.5, output_file)
+
+
+def save_window_to_image(amplitude, predicted_mini: bool, should_have_mini: bool,
+                         output_file: Path) -> None:
+    fig, ax = plt.subplots()
+    ax.set_title(f'predicted = {predicted_mini} - should have = {should_have_mini}')
+    ax.plot(amplitude, label='Electrophy')
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Amplitude (mV)')
+    ax.legend()
+    fig.savefig(output_file)
