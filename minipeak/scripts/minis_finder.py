@@ -10,6 +10,7 @@ from minipeak.utils import \
     load_training_dataset, save_false_positives_to_image, save_false_negatives_to_image, \
     filter_data_window, create_experiment_folder, save_experiment_to_json, \
     save_training_resultsto_csv
+from minipeak.visualization import plot_training_curves
 
 
 def _parse_args() -> argparse.Namespace:
@@ -182,8 +183,9 @@ def main() -> None:
         print(f'Epoch {epoch+1}: loss={epoch_loss / (batch_idx+1):.4f}, '
               f'accuracy={epoch_acc / (batch_idx+1):.4f}')
 
-    # Save training results to csv for plotting
+    # Save and plot training results
     save_training_resultsto_csv(experiment_folder, training_df)
+    plot_training_curves(training_df)
 
     # Set the model to evaluation mode
     model.eval()
