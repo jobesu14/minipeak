@@ -1,15 +1,20 @@
 import argparse
 from dataclasses import dataclass
+import logging
 from pathlib import Path
 import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from typing import Tuple
 
-from minipeak.utils import \
-    load_training_dataset, save_false_positives_to_image, save_false_negatives_to_image, \
+from minipeak.cnn_model import CNN
+from minipeak.preprocessing import load_training_dataset
+from minipeak.training.utils import \
+    save_false_positives_to_image, save_false_negatives_to_image, \
     filter_data_window, create_experiment_folder, save_experiment_to_json, \
     save_training_resultsto_csv
+from minipeak.training.visualization import plot_training_curves
 
 
 def _parse_args() -> argparse.Namespace:
@@ -24,37 +29,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument('--window-size', type=int, default=100, help='window size in ms')
     parser.add_argument('--no-cuda', action='store_true', help='disable cuda')
     return parser.parse_args()
-
-
-# Define the 1D CNN model
-class CNN(nn.Module):
-    def __init__(self, window_size: int):
-        super(CNN, self).__init__()
-        self.window_size = window_size
-        self.conv1 = nn.Conv1d(1, 32, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
-        self.pool = nn.MaxPool1d(2, 2)
-        self.fc1 = nn.Linear(64 * int(window_size / 2), 128)
-        self.fc2 = nn.Linear(128, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.25)
-
-    def forward(self, x):
-        # Convolution layers
-        x = self.conv1(x)
-        x = torch.relu(x)
-        x = self.conv2(x)
-        x = torch.relu(x)
-        x = self.pool(x)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        
-        # Fully connected layers
-        x = self.fc1(x)
-        x = torch.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        return torch.sigmoid(x)
 
 
 @dataclass
@@ -90,19 +64,15 @@ class ValidationResults:
         return float(self.true_positives) / (self.true_positives + self.false_negatives)
 
 
-def main() -> None:
-    args = _parse_args()
-    device = \
-        torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
-    print(f'Using device: {device}')
-
-    experiment_folder = create_experiment_folder(args.exp_folder)
-
-    # Create a pytorch Dataset from list of experiments csv files in folder. The 
-    # timeseries will be split into chunks of data called 'windows'. The windows are
-    # overlapping to make sure that the peaks are not truncated in a way that would
-    # make it difficult for the model to detect them.
-    all_X, all_y = load_training_dataset(args.csv_folder, args.window_size)
+def _training_data(csv_folder: Path, window_size: int, batch_size: int) \
+        -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
+    """
+    Create a pytorch Dataset from list of experiments csv files in folder. The 
+    timeseries will be split into chunks of data called 'windows'. The windows are
+    overlapping to make sure that the peaks are not truncated in a way that would
+    make it difficult for the model to detect them.
+    """
+    all_X, all_y = load_training_dataset(csv_folder, window_size)
     # We want to have the same amount of windows that contain a minis and windows
     # that don't contain a minis to balance the learning.
     all_X, all_y = filter_data_window(all_X, all_y)
@@ -120,33 +90,30 @@ def main() -> None:
 
     # Create dataloader
     train_data_loader = torch.utils.data.DataLoader(
-        train_data, batch_size=args.batch_size, shuffle=True, num_workers=4)
+        train_data, batch_size=batch_size, shuffle=True, num_workers=4)
     test_data_loader = torch.utils.data.DataLoader(
-        test_data, batch_size=args.batch_size, shuffle=True, num_workers=4)
+        test_data, batch_size=batch_size, shuffle=True, num_workers=4)
+    return train_data_loader, test_data_loader
 
-    # Initialize the model and optimizer
-    model = CNN(window_size=args.window_size)
-    optimizer = optim.Adam(model.parameters(),
-                           lr=args.learning_rate,
-                           weight_decay=args.weight_decay)
-    
-    # Define the loss function and evaluation metric
-    loss_fn = nn.BCELoss() # nn.BCEWithLogitsLoss()
-    def accuracy(y_pred, y_true):
-        # y_pred = torch.sigmoid(y_pred)
-        correct = (y_pred > 0.5) == (y_true > 0.5)
-        return correct.float().mean()
-    
-    no_peaks_zone = int(args.window_size/4)
-    def contains_peaks(peak_window, no_peaks_padding: int):
-        return torch.any(peak_window[:, :, no_peaks_padding:-no_peaks_padding],
-                         dim=2).float()
 
+def _accuracy(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+    # y_pred = torch.sigmoid(y_pred)
+    correct = (y_pred > 0.5) == (y_true > 0.5)
+    return correct.float().mean()
+
+
+def _contains_peaks(peak_window: torch.Tensor, no_peaks_padding: int):
+    return torch.any(peak_window[:, :, no_peaks_padding:-no_peaks_padding], dim=2).float()
+
+
+def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer,
+           loss_fn: nn.Module, train_loader: torch.utils.data.DataLoader,
+           epochs: int, no_peaks_zone: int) -> float:
     # Training results
     training_df = pd.DataFrame(columns=['epoch', 'loss', 'accuracy'])
 
     # Train model
-    for epoch in range(args.epochs):
+    for epoch in range(epochs):
         # Initialize the accuracy and loss for the epoch
         epoch_loss = 0
         epoch_acc = 0
@@ -155,7 +122,7 @@ def main() -> None:
         model.train()
         
         # Loop over the training data
-        for batch_idx, (X, y) in enumerate(train_data_loader):
+        for batch_idx, (X, y) in enumerate(train_loader):
             # Zero the gradients
             optimizer.zero_grad()
             
@@ -163,11 +130,11 @@ def main() -> None:
             y_pred = model(X)
             
             # Check if a minipeak is part of this batch
-            y = contains_peaks(y, no_peaks_padding=no_peaks_zone)
+            y = _contains_peaks(y, no_peaks_padding=no_peaks_zone)
         
             # Compute loss and accuracy
             loss = loss_fn(y_pred, y)
-            acc = accuracy(y_pred, y)
+            acc = _accuracy(y_pred, y)
             
             # Backward pass
             loss.backward()
@@ -178,13 +145,19 @@ def main() -> None:
             epoch_acc += acc.item()
 
         # Epoch loss and accuracy
-        training_df.loc[epoch] = [epoch+1, epoch_loss / (batch_idx+1), epoch_acc / (batch_idx+1)]
-        print(f'Epoch {epoch+1}: loss={epoch_loss / (batch_idx+1):.4f}, '
-              f'accuracy={epoch_acc / (batch_idx+1):.4f}')
+        training_df.loc[epoch] = [epoch+1, epoch_loss / (batch_idx+1),
+                                  epoch_acc / (batch_idx+1)]
+        logging.info(f'Epoch {epoch+1}: loss={epoch_loss / (batch_idx+1):.4f}, '
+                     f'accuracy={epoch_acc / (batch_idx+1):.4f}')
 
-    # Save training results to csv for plotting
+    # Plot and save training results
     save_training_resultsto_csv(experiment_folder, training_df)
+    plot_training_curves(training_df)
 
+
+def _evaluate(experiment_folder: Path, model: nn.Module, loss_fn: nn.Module,
+              test_data_loader: torch.utils.data.DataLoader, no_peaks_zone: int) \
+        -> ValidationResults:
     # Set the model to evaluation mode
     model.eval()
 
@@ -197,24 +170,59 @@ def main() -> None:
         y_pred = model(x)
 
         # Check if a minipeak is part of this batch
-        y = contains_peaks(y, no_peaks_padding=no_peaks_zone)
+        y = _contains_peaks(y, no_peaks_padding=no_peaks_zone)
 
         # Compute the loss and accuracy
         loss = loss_fn(y_pred, y)
-        acc = accuracy(y_pred, y)
-        true_pos, false_pos = save_false_positives_to_image(experiment_folder, x, y_pred, y)
-        true_neg, false_neg = save_false_negatives_to_image(experiment_folder, x, y_pred, y)
+        acc = _accuracy(y_pred, y)
+        true_pos, false_pos = save_false_positives_to_image(experiment_folder, x,
+                                                            y_pred, y)
+        true_neg, false_neg = save_false_negatives_to_image(experiment_folder, x,
+                                                            y_pred, y)
 
         # Update the validation loss and accuracy
         validation.add_results(loss.item(), acc.item(), true_pos, false_pos,
                                true_neg, false_neg)
 
     # Compute final validation loss, accuracy, precision and recall
-    print(f'\nValidation results:')
-    print(f'loss      = {validation.loss():.4f}')
-    print(f'accuracy  = {validation.accuracy():.4f}')
-    print(f'precision = {validation.precision():.4f}')
-    print(f'recall    = {validation.recall():.4f}')
+    logging.info(f'\nValidation results:')
+    logging.info(f'loss      = {validation.loss():.4f}')
+    logging.info(f'accuracy  = {validation.accuracy():.4f}')
+    logging.info(f'precision = {validation.precision():.4f}')
+    logging.info(f'recall    = {validation.recall():.4f}')
+    
+    return validation
+
+
+def main() -> None:
+    args = _parse_args()
+    logging.basicConfig(level='INFO')
+    
+    device = \
+        torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
+    logging.info(f'Using device: {device}')
+
+    experiment_folder = create_experiment_folder(args.exp_folder)
+
+    # Create the training and validation datasets
+    train_data_loader, test_data_loader = _training_data(args.csv_folder, args.window_size,
+                                                         args.batch_size)
+
+    # Initialize the model, optimizer and loss function
+    model = CNN(window_size=args.window_size)
+    optimizer = optim.Adam(model.parameters(),
+                           lr=args.learning_rate,
+                           weight_decay=args.weight_decay)
+    loss_fn = nn.BCELoss() # nn.BCEWithLogitsLoss()
+    
+    # Define window area where peaks are ignored
+    no_peaks_zone = int(args.window_size/4)
+    
+    # Train the model
+    _train(experiment_folder, model, optimizer, loss_fn, train_data_loader, args.epochs, no_peaks_zone)
+    
+    # Evaluate the model
+    validation = _evaluate(experiment_folder, model, loss_fn, test_data_loader, no_peaks_zone)
 
     # Save the training hyperparameters and validation results
     save_experiment_to_json(experiment_folder, args.epochs, args.learning_rate,
@@ -222,8 +230,8 @@ def main() -> None:
                             validation.loss(), validation.accuracy(),
                             validation.precision(), validation.recall())
 
-    # save model
-    model_file = args.exp_folder / 'model.pt'
+    # Save model
+    model_file = experiment_folder / 'model.pt'
     torch.save(model.state_dict(), model_file)
 
 

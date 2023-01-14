@@ -1,3 +1,4 @@
+import logging
 import numbers
 import os
 from typing import Callable, List, Optional, Union
@@ -69,7 +70,7 @@ def set_style(style_name: Union[str, List[str]], ignore_if_fails: bool = True) -
         plt.style.use(styles_list)
     except OSError as error:
         if ignore_if_fails:
-            print(error, file=sys.stderr)
+            logging.error(error, file=sys.stderr)
         else:
             raise error
 

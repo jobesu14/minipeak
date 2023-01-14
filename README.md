@@ -44,9 +44,9 @@ To test manually the code quality, go at the root of `minipeak` project:
 [x] implement training summary (hyper-parameters, network parameters, accuracy, precision, recall, loss, ...)
 [ ] implement peak position model output
 [ ] implement inference code example on a new datasets
-[ ] use a logger
+[x] use a logger
 [ ] code documentation
 [ ] mypy and flake formatting (no need of HTML doc)
 [ ] improve readme so that people understand wht this repo is about
-[ ] refactore?
+[x] refactore?
 [ ] write unit test for core functions
