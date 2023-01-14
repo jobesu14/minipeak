@@ -1,5 +1,6 @@
 import argparse
 from dataclasses import dataclass
+import logging
 from pathlib import Path
 import pandas as pd
 import torch
@@ -95,7 +96,7 @@ def main() -> None:
     args = _parse_args()
     device = \
         torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
-    print(f'Using device: {device}')
+    logging.info(f'Using device: {device}')
 
     experiment_folder = create_experiment_folder(args.exp_folder)
 
@@ -179,8 +180,9 @@ def main() -> None:
             epoch_acc += acc.item()
 
         # Epoch loss and accuracy
-        training_df.loc[epoch] = [epoch+1, epoch_loss / (batch_idx+1), epoch_acc / (batch_idx+1)]
-        print(f'Epoch {epoch+1}: loss={epoch_loss / (batch_idx+1):.4f}, '
+        training_df.loc[epoch] = [epoch+1, epoch_loss / (batch_idx+1),
+                                  epoch_acc / (batch_idx+1)]
+        logging.info(f'Epoch {epoch+1}: loss={epoch_loss / (batch_idx+1):.4f}, '
               f'accuracy={epoch_acc / (batch_idx+1):.4f}')
 
     # Save and plot training results
@@ -204,19 +206,21 @@ def main() -> None:
         # Compute the loss and accuracy
         loss = loss_fn(y_pred, y)
         acc = accuracy(y_pred, y)
-        true_pos, false_pos = save_false_positives_to_image(experiment_folder, x, y_pred, y)
-        true_neg, false_neg = save_false_negatives_to_image(experiment_folder, x, y_pred, y)
+        true_pos, false_pos = save_false_positives_to_image(experiment_folder, x,
+                                                            y_pred, y)
+        true_neg, false_neg = save_false_negatives_to_image(experiment_folder, x,
+                                                            y_pred, y)
 
         # Update the validation loss and accuracy
         validation.add_results(loss.item(), acc.item(), true_pos, false_pos,
                                true_neg, false_neg)
 
     # Compute final validation loss, accuracy, precision and recall
-    print(f'\nValidation results:')
-    print(f'loss      = {validation.loss():.4f}')
-    print(f'accuracy  = {validation.accuracy():.4f}')
-    print(f'precision = {validation.precision():.4f}')
-    print(f'recall    = {validation.recall():.4f}')
+    logging.info(f'\nValidation results:')
+    logging.info(f'loss      = {validation.loss():.4f}')
+    logging.info(f'accuracy  = {validation.accuracy():.4f}')
+    logging.info(f'precision = {validation.precision():.4f}')
+    logging.info(f'recall    = {validation.recall():.4f}')
 
     # Save the training hyperparameters and validation results
     save_experiment_to_json(experiment_folder, args.epochs, args.learning_rate,
