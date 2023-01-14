@@ -10,7 +10,7 @@ from minipeak import styles as ps
 
 def _parse_args() -> Tuple[Path, Path, str, bool]:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--csv_file', type=Path, help='path to experiment csv file')
+    parser.add_argument('csv_file', type=Path, help='path to experiment csv file')
     args = parser.parse_args()
     return args.csv_file
 
