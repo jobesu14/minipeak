@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 from typing import Tuple
 
-from minipeak.utils import load_experiment_from_csv
+from minipeak.preprocessing import load_experiment_from_csv
 from minipeak import styles as ps
 
 
@@ -17,7 +17,7 @@ def _parse_args() -> Tuple[Path, Path, str, bool]:
 
 def plot_experiment(experiment_df: pd.DataFrame, exp_name: str) \
         -> None:
-    # plot minis_df and timeserie_df in smae graph with 'time' as x axis
+    # plot minis_df and timeserie_df in same graph with 'time' as x axis
     _, ax = plt.subplots()
     ax.plot(experiment_df['time'], experiment_df['minis'], 'o', label='minis')
     ax.plot(experiment_df['time'], experiment_df['amplitude'], label='timeserie')

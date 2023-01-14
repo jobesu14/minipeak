@@ -7,11 +7,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from minipeak.utils import \
-    load_training_dataset, save_false_positives_to_image, save_false_negatives_to_image, \
+
+from minipeak.preprocessing import load_training_dataset
+from minipeak.training.utils import \
+    save_false_positives_to_image, save_false_negatives_to_image, \
     filter_data_window, create_experiment_folder, save_experiment_to_json, \
     save_training_resultsto_csv
-from minipeak.visualization import plot_training_curves
+from minipeak.training.visualization import plot_training_curves
 
 
 def _parse_args() -> argparse.Namespace:
