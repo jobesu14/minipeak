@@ -1,11 +1,15 @@
 import argparse
+from dataclasses import dataclass
 from pathlib import Path
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 from minipeak.utils import \
-    load_training_dataset, save_wrong_pred_to_image, filter_data_window
+    load_training_dataset, save_false_positives_to_image, save_false_negatives_to_image, \
+    filter_data_window, create_experiment_folder, save_experiment_to_json, \
+    save_training_resultsto_csv
 
 
 def _parse_args() -> argparse.Namespace:
@@ -53,16 +57,46 @@ class CNN(nn.Module):
         return torch.sigmoid(x)
 
 
+@dataclass
+class ValidationResults:
+    nb_samples: int = 0
+    sum_loss: float = 0
+    sum_accuracy: float = 0
+    false_positives: int = 0
+    false_negatives: int = 0
+    true_positives: int = 0
+    true_negatives: int = 0
+    
+    def add_results(self, loss: float, accuracy: float, true_positives: int,
+                    false_positives: int, true_negatives: int, false_negatives: int):
+        self.nb_samples += 1
+        self.sum_loss += loss
+        self.sum_accuracy += accuracy
+        self.true_positives += true_positives
+        self.false_positives += false_positives
+        self.true_negatives += true_negatives
+        self.false_negatives += false_negatives
+    
+    def loss(self) -> float:
+        return self.sum_loss / self.nb_samples
+    
+    def accuracy(self) -> float:
+        return self.sum_accuracy / self.nb_samples
+    
+    def precision(self) -> float:
+        return float(self.true_positives) / (self.true_positives + self.false_positives)
+    
+    def recall(self) -> float:
+        return float(self.true_positives) / (self.true_positives + self.false_negatives)
+
+
 def main() -> None:
     args = _parse_args()
     device = \
         torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
     print(f'Using device: {device}')
-    
-    # create experiment folder if doesn't exist
-    args.exp_folder.mkdir(parents=True, exist_ok=True)
-    image_path = args.exp_folder / f'wrong_pred'
-    image_path.mkdir(parents=True, exist_ok=True)
+
+    experiment_folder = create_experiment_folder(args.exp_folder)
 
     # Create a pytorch Dataset from list of experiments csv files in folder. The 
     # timeseries will be split into chunks of data called 'windows'. The windows are
@@ -108,7 +142,10 @@ def main() -> None:
         return torch.any(peak_window[:, :, no_peaks_padding:-no_peaks_padding],
                          dim=2).float()
 
-    # train model
+    # Training results
+    training_df = pd.DataFrame(columns=['epoch', 'loss', 'accuracy'])
+
+    # Train model
     for epoch in range(args.epochs):
         # Initialize the accuracy and loss for the epoch
         epoch_loss = 0
@@ -126,7 +163,7 @@ def main() -> None:
             y_pred = model(X)
             
             # Check if a minipeak is part of this batch
-            y = contains_peaks(y, peak_padding=no_peaks_zone)
+            y = contains_peaks(y, no_peaks_padding=no_peaks_zone)
         
             # Compute loss and accuracy
             loss = loss_fn(y_pred, y)
@@ -140,38 +177,50 @@ def main() -> None:
             epoch_loss += loss.item()
             epoch_acc += acc.item()
 
-        # Print the epoch loss and accuracy
+        # Epoch loss and accuracy
+        training_df.loc[epoch] = [epoch+1, epoch_loss / (batch_idx+1), epoch_acc / (batch_idx+1)]
         print(f'Epoch {epoch+1}: loss={epoch_loss / (batch_idx+1):.4f}, '
               f'accuracy={epoch_acc / (batch_idx+1):.4f}')
+
+    # Save training results to csv for plotting
+    save_training_resultsto_csv(experiment_folder, training_df)
 
     # Set the model to evaluation mode
     model.eval()
 
-    # Initialize the validation loss and accuracy
-    val_loss = 0
-    val_acc = 0
+    # Initialize the validation loss, accuracy, recall and precision
+    validation = ValidationResults()
 
     # Loop over the validation data
-    for i, (x, y) in enumerate(test_data_loader):
+    for x, y in test_data_loader:
         # Forward pass
         y_pred = model(x)
 
         # Check if a minipeak is part of this batch
-        y = contains_peaks(y, peak_padding=no_peaks_zone)
+        y = contains_peaks(y, no_peaks_padding=no_peaks_zone)
 
         # Compute the loss and accuracy
         loss = loss_fn(y_pred, y)
         acc = accuracy(y_pred, y)
+        true_pos, false_pos = save_false_positives_to_image(experiment_folder, x, y_pred, y)
+        true_neg, false_neg = save_false_negatives_to_image(experiment_folder, x, y_pred, y)
 
         # Update the validation loss and accuracy
-        val_loss += loss.item()
-        val_acc += acc.item()
-        
-        # Save the wrong prediction to image for investigation
-        save_wrong_pred_to_image(x, y_pred, y, image_path)
+        validation.add_results(loss.item(), acc.item(), true_pos, false_pos,
+                               true_neg, false_neg)
 
-    # Print the validation loss and accuracy
-    print(f'Validation: loss={val_loss / (i+1):.4f}, accuracy={val_acc / (i+1):.4f}')
+    # Compute final validation loss, accuracy, precision and recall
+    print(f'\nValidation results:')
+    print(f'loss      = {validation.loss():.4f}')
+    print(f'accuracy  = {validation.accuracy():.4f}')
+    print(f'precision = {validation.precision():.4f}')
+    print(f'recall    = {validation.recall():.4f}')
+
+    # Save the training hyperparameters and validation results
+    save_experiment_to_json(experiment_folder, args.epochs, args.learning_rate,
+                            args.weight_decay, args.window_size,
+                            validation.loss(), validation.accuracy(),
+                            validation.precision(), validation.recall())
 
     # save model
     model_file = args.exp_folder / 'model.pt'

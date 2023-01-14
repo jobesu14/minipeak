@@ -38,3 +38,15 @@ To test manually the code quality, go at the root of `minipeak` project:
 * Unit testing: `pytest`
 * Linter: `flake8`
 * Static type checker: `mypy .`
+
+# Todo
+
+[x] implement training summary (hyper-parameters, network parameters, accuracy, precision, recall, loss, ...)
+[ ] implement peak position model output
+[ ] implement inference code example on a new datasets
+[ ] use a logger
+[ ] code documentation
+[ ] mypy and flake formatting (no need of HTML doc)
+[ ] improve readme so that people understand wht this repo is about
+[ ] refactore?
+[ ] write unit test for core functions
