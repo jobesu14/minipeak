@@ -11,7 +11,7 @@ class CNN(nn.Module):
         self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
         self.pool = nn.MaxPool1d(2, 2)
         self.fc1 = nn.Linear(64 * int(window_size / 2), 128)
-        self.fc2 = nn.Linear(128, 1)
+        self.fc2 = nn.Linear(128, 2)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.25)
 

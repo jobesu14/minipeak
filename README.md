@@ -42,7 +42,8 @@ To test manually the code quality, go at the root of `minipeak` project:
 # Todo
 
 [x] implement training summary (hyper-parameters, network parameters, accuracy, precision, recall, loss, ...)
-[ ] implement peak position model output
+[x] implement peak position model output
+[ ] implement manual peak detection when peak prediction is true (find max amplitude in window?, use peak derivative?, other?)
 [ ] implement inference code example on a new datasets
 [x] use a logger
 [ ] code documentation
