@@ -1,8 +1,25 @@
 import numpy as np
 from pathlib import Path
 import  pandas as pd
+import pyabf
 import torch
 from typing import Tuple
+
+
+def read_abf(abf_file: Path, sampling_rate: int = 1) -> pd.DataFrame:
+    abf = pyabf.ABF(abf_file)
+    time = abf.sweepX
+    amplitude = abf.sweepY
+    if sampling_rate > 1:
+        time = time[::sampling_rate]
+        amplitude = amplitude[::sampling_rate]
+    df = pd.DataFrame({'time':time, 'amplitude':amplitude})
+    return df
+
+
+def remove_low_freq_trend(serie_ms: pd.Series, window_ms: int) -> pd.DataFrame: 
+     trend = serie_ms.rolling(window = window_ms, center = True).mean()
+     return serie_ms - trend
 
 
 def split_into_overlapping_windows(time_series, window_size: int, overlap: int):

@@ -1,15 +1,7 @@
-import pyabf
 from pathlib import Path
 import pandas as pd
 
-
-ABF_SAMPLING_RATE = 100 # we use only 1/100 of the original data
-TREND_REMOVAL_WINDOW = 100 # in ms
-
-
-def _remove_low_freq_trend(serie: pd.Series, window: int) -> pd.DataFrame: 
-     trend = serie.rolling(window = window, center = True).mean()
-     return serie - trend
+from minipeak.preprocessing import read_abf, remove_low_freq_trend
 
 
 def _group_minis_and_electrophy(minis_df: pd.DataFrame, electrophy_df: pd.DataFrame) \
@@ -21,7 +13,7 @@ def _group_minis_and_electrophy(minis_df: pd.DataFrame, electrophy_df: pd.DataFr
     # remove row with no 'amplitude' data
     experiment_df.dropna(subset=['amplitude'], inplace=True)
     experiment_df['minis'] = 0.0 ## add minis column filled with zeros
-    
+
     mini_id = 0
     t_next_mini = minis_df['time'].iloc[mini_id]
     for index, row in experiment_df.iterrows():
@@ -46,22 +38,13 @@ def _read_minis(xls_file: Path, exp_name: str) -> pd.DataFrame:
     return df
 
 
-def read_abf(abf_file: Path, sampling_rate: int = 1) -> pd.DataFrame:
-    abf = pyabf.ABF(abf_file)
-    time = abf.sweepX
-    amplitude = abf.sweepY
-    if sampling_rate > 1:
-        time = time[::sampling_rate]
-        amplitude = amplitude[::sampling_rate]
-    df = pd.DataFrame({'time':time, 'amplitude':amplitude})
-    return df
-
-def load_experiment_from_foder(xls_file: Path, abf_file: Path,
-                               exp_name: str, remove_trend: bool) -> pd.DataFrame:
+def load_experiment_from_foder(xls_file: Path, abf_file: Path, exp_name: str,
+                               sampling_rate: int, remove_trend: bool,
+                               remove_trend_win_ms: int) -> pd.DataFrame:
     minis_df = _read_minis(xls_file, exp_name)
-    electrophy_df = read_abf(abf_file, sampling_rate=ABF_SAMPLING_RATE)
+    electrophy_df = read_abf(abf_file, sampling_rate=sampling_rate)
     if remove_trend:
-        electrophy_df['amplitude'] = _remove_low_freq_trend(electrophy_df['amplitude'],
-                                                           window=TREND_REMOVAL_WINDOW)
+        electrophy_df['amplitude'] = remove_low_freq_trend(electrophy_df['amplitude'],
+                                                           window_ms=remove_trend_win_ms)
     experiment_df = _group_minis_and_electrophy(minis_df, electrophy_df)
     return experiment_df

@@ -116,8 +116,26 @@ def _class_accuracy(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
     return correct.float().mean()
 
 
-def _position_error(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-    error = nn.MSELoss()(y_pred[:,1], y_true[:,1])
+def _position_error(X: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) \
+        -> torch.Tensor:
+    # Get the percentage of the window where the peaks are located.
+    t_pred_perc = y_pred[:,1]
+    t_true_perc = y_true[:,1]
+    
+    # Get the amplitude values of the peaks.
+    batch_size = X.shape[0]
+    index_pred = torch.mul(t_pred_perc, X.shape[2]).reshape([batch_size,1,1]).long()
+    index_true = torch.mul(t_true_perc, X.shape[2]).reshape([batch_size,1,1]).long()
+    amp_pred = torch.take_along_dim(X, indices=index_pred, dim=2).reshape(batch_size)
+    amp_true = torch.take_along_dim(X, indices=index_true, dim=2).reshape(batch_size)
+    
+    # Combine the time/amplitude of the predictions and targets.
+    pred = torch.stack((t_pred_perc, amp_pred), dim=1)
+    target = torch.stack((t_true_perc, amp_true), dim=1)
+    
+    # Compute the mean squared error between the time/amplitude coordinates of the 
+    # predicted peak and the target peak.
+    error = nn.MSELoss()(pred, target)
     return error.float().mean()
 
 
@@ -161,7 +179,7 @@ def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer
             # Compute loss and accuracy
             loss = _loss(y_pred, y)
             acc = _class_accuracy(y_pred, y)
-            pos_err = _position_error(y_pred, y)
+            pos_err = _position_error(X, y_pred, y)
             
             # Backward pass
             loss.backward()
@@ -194,9 +212,9 @@ def _evaluate(experiment_folder: Path, model: nn.Module,
     validation = ValidationResults()
 
     # Loop over the validation data
-    for x, y in test_data_loader:
+    for X, y in test_data_loader:
         # Forward pass
-        y_pred = model(x)
+        y_pred = model(X)
 
         # Check if a minipeak is part of this batch
         y = _peaks_info(y, no_peaks_padding=no_peaks_zone)
@@ -204,10 +222,10 @@ def _evaluate(experiment_folder: Path, model: nn.Module,
         # Compute the loss and accuracy
         loss = _loss(y_pred, y)
         acc = _class_accuracy(y_pred, y)
-        pos_err = _position_error(y_pred, y)
-        true_pos, false_pos = save_false_positives_to_image(experiment_folder, x,
+        pos_err = _position_error(X, y_pred, y)
+        true_pos, false_pos = save_false_positives_to_image(experiment_folder, X,
                                                             y_pred, y.numpy())
-        true_neg, false_neg = save_false_negatives_to_image(experiment_folder, x,
+        true_neg, false_neg = save_false_negatives_to_image(experiment_folder, X,
                                                             y_pred, y.numpy())
 
         # Update the validation loss and accuracy

@@ -2,13 +2,12 @@ import argparse
 import matplotlib.pyplot as plt
 from pathlib import Path
 import pandas as pd
-from typing import Tuple
 
 from minipeak.preprocessing import load_experiment_from_csv
 from minipeak import styles as ps
 
 
-def _parse_args() -> Tuple[Path, Path, str, bool]:
+def _parse_args() -> Path:
     parser = argparse.ArgumentParser()
     parser.add_argument('csv_file', type=Path, help='path to experiment csv file')
     args = parser.parse_args()
