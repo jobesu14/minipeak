@@ -102,6 +102,15 @@ def _training_data(csv_folder: Path, window_size: int, batch_size: int) \
     return train_data_loader, test_data_loader
 
 
+def _peaks_info(peak_window: torch.Tensor, no_peaks_padding: int) -> torch.Tensor:
+    has_peaks = \
+        torch.any(peak_window[:, :, no_peaks_padding:-no_peaks_padding], dim=2).float()
+    peak_pos = \
+        torch.argmax(peak_window[:, :, no_peaks_padding:-no_peaks_padding], dim=2).float()
+    peak_pos = (no_peaks_padding + peak_pos) / peak_window.shape[2]
+    return torch.stack((has_peaks, peak_pos), dim=1).reshape(-1, 2)
+
+
 def _loss(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
     # Class loss (window contains a peak or not).
     loss = nn.BCELoss()(y_pred[:,0], y_true[:,0])
@@ -137,16 +146,6 @@ def _position_error(X: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor)
     # predicted peak and the target peak.
     error = nn.MSELoss()(pred, target)
     return error.float().mean()
-
-
-def _peaks_info(peak_window: torch.Tensor, no_peaks_padding: int) -> torch.Tensor:
-    has_peaks = \
-        torch.any(peak_window[:, :, no_peaks_padding:-no_peaks_padding], dim=2).float()
-    peak_pos = \
-        torch.argmax(peak_window[:, :, no_peaks_padding:-no_peaks_padding], dim=2).float()
-    peak_pos = (no_peaks_padding + peak_pos) / peak_window.shape[2]
-    t = torch.stack((has_peaks, peak_pos), dim=1).reshape(-1, 2)
-    return t
 
 
 def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer,
@@ -244,8 +243,8 @@ def _evaluate(experiment_folder: Path, model: nn.Module,
 
 
 def main() -> None:
-    args = _parse_args()
     logging.basicConfig(level='INFO')
+    args = _parse_args()
     
     device = \
         torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')

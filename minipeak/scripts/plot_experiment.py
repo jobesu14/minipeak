@@ -7,14 +7,13 @@ from minipeak.preprocessing import load_experiment_from_csv
 from minipeak import styles as ps
 
 
-def _parse_args() -> Path:
+def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('csv_file', type=Path, help='path to experiment csv file')
-    args = parser.parse_args()
-    return args.csv_file
+    return parser.parse_args()
 
 
-def plot_experiment(experiment_df: pd.DataFrame, exp_name: str) \
+def _plot_experiment(experiment_df: pd.DataFrame, exp_name: str) \
         -> None:
     # plot minis_df and timeserie_df in same graph with 'time' as x axis
     _, ax = plt.subplots()
@@ -29,11 +28,11 @@ def plot_experiment(experiment_df: pd.DataFrame, exp_name: str) \
 
 def main() -> None:
     ps.set_style('default')
-    
-    csv_file = _parse_args()
-    exp_name = csv_file.stem
-    experiment_df = load_experiment_from_csv(csv_file)
-    plot_experiment(experiment_df, exp_name)
+
+    args = _parse_args()
+    exp_name = args.csv_file.stem
+    experiment_df = load_experiment_from_csv(args.csv_file)
+    _plot_experiment(experiment_df, exp_name)
 
 
 if __name__ == '__main__':

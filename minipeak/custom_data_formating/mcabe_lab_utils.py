@@ -39,12 +39,11 @@ def _read_minis(xls_file: Path, exp_name: str) -> pd.DataFrame:
 
 
 def load_experiment_from_foder(xls_file: Path, abf_file: Path, exp_name: str,
-                               sampling_rate: int, remove_trend: bool,
-                               remove_trend_win_ms: int) -> pd.DataFrame:
+                               sampling_rate: int, remove_trend_win_ms: int) \
+        -> pd.DataFrame:
     minis_df = _read_minis(xls_file, exp_name)
     electrophy_df = read_abf(abf_file, sampling_rate=sampling_rate)
-    if remove_trend:
-        electrophy_df['amplitude'] = remove_low_freq_trend(electrophy_df['amplitude'],
-                                                           window_ms=remove_trend_win_ms)
+    electrophy_df['amplitude'] = remove_low_freq_trend(electrophy_df['amplitude'],
+                                                        window_ms=remove_trend_win_ms)
     experiment_df = _group_minis_and_electrophy(minis_df, electrophy_df)
     return experiment_df
