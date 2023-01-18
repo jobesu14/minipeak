@@ -44,13 +44,12 @@ def _plot_experiment(experiment_df: pd.DataFrame, peaks_found: np.ndarray) \
 def _find_mini_peaks(model: CNN, amplitude: pd.DataFrame, window_size: int) -> np.ndarray:
     model.eval()
 
-    windows = split_into_overlapping_windows(amplitude['amplitude'], window_size,
+    windows = split_into_overlapping_windows(amplitude['amplitude'].values, window_size,
                                              int(window_size/2))
     peak_indices = []
-    win_num = 0
-    for window in windows:
+    for win_num, window in enumerate(windows):
         # Predict the peak probability and peak time in the window with the CNN.
-        torch_win = torch.from_numpy(window).reshape(1,1,window_size).float()
+        torch_win = torch.from_numpy(window).reshape(-1, 1, window_size).float()
         pred = model(torch_win)
 
         # First value of NN output is the estimated peak probability.
@@ -61,9 +60,9 @@ def _find_mini_peaks(model: CNN, amplitude: pd.DataFrame, window_size: int) -> n
         # If a peak has been predicted in this window, add the time of the peak computed 
         # from the begining of the timeserie.
         if win_has_peak:
-            global_peak_index = int((win_num * window_size) / 2) + win_peak_index
+            global_peak_index = int(win_num / 2.0 * window_size) + win_peak_index
+            global_peak_index += amplitude.index[0] #  amplitude index doesn't start at 0
             peak_indices.append(global_peak_index)
-        win_num += 1
 
     return np.array(peak_indices)
 
