@@ -11,7 +11,7 @@ def plot_training_windows(amp_win: np.ndarray, minis_win: np.ndarray) -> None:
     min_amplitude = min([min(amp_win) for amp_win in amp_win])
     max_amplitude = max([max(amp_win) for amp_win in amp_win])
     
-    # iterate over all windows andn plot them
+    # iterate over all windows and plot them
     for amplitude, minis in zip(amp_win, minis_win):
         peaks_time, peaks_amp = convert_minis_to_amplitude(amplitude, minis)
         # plot data

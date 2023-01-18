@@ -1,11 +1,29 @@
 import numpy as np
 from pathlib import Path
 import  pandas as pd
+import pyabf
 import torch
 from typing import Tuple
 
 
-def split_into_overlapping_windows(time_series, window_size: int, overlap: int):
+def read_abf(abf_file: Path, sampling_rate: int = 1) -> pd.DataFrame:
+    abf = pyabf.ABF(abf_file)
+    time = abf.sweepX
+    amplitude = abf.sweepY
+    if sampling_rate > 1:
+        time = time[::sampling_rate]
+        amplitude = amplitude[::sampling_rate]
+    df = pd.DataFrame({'time':time, 'amplitude':amplitude})
+    return df
+
+
+def remove_low_freq_trend(serie_ms: pd.Series, window_ms: int) -> pd.DataFrame: 
+     trend = serie_ms.rolling(window=window_ms, center=True).mean()
+     return serie_ms - trend
+
+
+def split_into_overlapping_windows(time_series: np.ndarray, window_size: int,
+                                   overlap: int) -> np.ndarray:
     # Make sure time_series has a length which is a multiple of window_size,
     # if it is not the case fill with zeros
     if len(time_series) % window_size != 0:
@@ -29,7 +47,6 @@ def load_experiment_from_csv(csv_file: Path) -> pd.DataFrame:
     return experiment_df
 
 
-
 def load_windowed_dataset(csv_file: Path, window_size: int = 100) \
         -> Tuple[np.ndarray, np.ndarray]:
     data_df = load_experiment_from_csv(csv_file)
@@ -47,16 +64,16 @@ def load_windowed_dataset(csv_file: Path, window_size: int = 100) \
 def load_training_dataset(folder: Path, window_size: int = 100) \
         -> torch.utils.data.TensorDataset:
     csv_files = folder.glob('*.csv')
-    
+
     all_X = np.empty((0, 1, window_size))
     all_y = np.empty((0, 1, window_size))
     
     for csv_file in csv_files:
         X, y = load_windowed_dataset(csv_file, window_size)
-        
+
         X = X.reshape(-1, 1, window_size)
         y = y.reshape(-1, 1, window_size)
-    
+
         all_X = np.concatenate([all_X, X], axis=0)
         all_y = np.concatenate([all_y, y], axis=0)
 

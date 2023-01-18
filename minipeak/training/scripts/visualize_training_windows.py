@@ -6,7 +6,7 @@ from minipeak.preprocessing import load_windowed_dataset
 from minipeak.training.visualization import plot_training_windows
 
 
-def _parse_args() -> Path:
+def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description='Plot the training data windows for a given experiment.')
     parser.add_argument('csv_file', type=Path,

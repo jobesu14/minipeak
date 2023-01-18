@@ -41,12 +41,15 @@ To test manually the code quality, go at the root of `minipeak` project:
 
 # Todo
 
-[x] implement training summary (hyper-parameters, network parameters, accuracy, precision, recall, loss, ...)
-[ ] implement peak position model output
-[ ] implement inference code example on a new datasets
-[x] use a logger
-[ ] code documentation
-[ ] mypy and flake formatting (no need of HTML doc)
-[ ] improve readme so that people understand wht this repo is about
-[x] refactore?
-[ ] write unit test for core functions
+- [x] implement training summary (hyper-parameters, network parameters, accuracy, precision, recall, loss, ...)
+- [x] implement peak position model output
+- [ ] implement inference code example on a new datasets
+- [x] use a logger
+- [ ] code documentation
+- [ ] mypy and flake formatting (no need of HTML doc)
+- [ ] improve readme so that people understand wht this repo is about
+- [x] refactore
+- [ ] resample abf timeserie based on Hz that user can set as param instead of hard coded sampling
+(preprocessing read_abf() and remove_low_freq_trend())
+- [ ] write unit test for core functions
+- [ ] (implement manual peak detection when peak prediction is true (find max amplitude in window?, use peak derivative?, other?))

@@ -6,14 +6,13 @@ import pyabf
 from minipeak import styles as ps
 
 
-def _parse_args() -> Path:
+def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('abf_file', type=Path, help='path to abf file')
-    args = parser.parse_args()
-    return args.abf_file
+    return parser.parse_args()
 
 
-def plot_electrophy(abf_file) -> None:
+def _plot_electrophy(abf_file) -> None:
     # load data from abf file
     abf = pyabf.ABF(abf_file)
     time = abf.sweepX
@@ -31,8 +30,8 @@ def plot_electrophy(abf_file) -> None:
 def main() -> None:
     ps.set_style('default')
 
-    abf_file = _parse_args()
-    plot_electrophy(abf_file)
+    args = _parse_args()
+    _plot_electrophy(args.abf_file)
 
 
 if __name__ == '__main__':
