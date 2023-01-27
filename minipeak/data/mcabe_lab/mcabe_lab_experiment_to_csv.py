@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from minipeak.custom_data_formating.mcabe_lab_utils import load_experiment_from_foder
+from minipeak.data.mcabe_lab.mcabe_lab_utils import load_experiment_from_foder
 from minipeak import styles as ps
 
 
@@ -12,8 +12,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument('xls_file', type=Path, help='path to experiment xls file')
     parser.add_argument('csv_folder',
                         type=Path, help='path to folder containing csv files')
-    parser.add_argument('--exp_name', type=str, help='name of experiment; abf file and '
-                                                     'tab in excel file must match')
+    parser.add_argument('--exp_name', type=str, default=None,
+                        help='name of experiment; abf file and tab in excel file must'
+                        'match')
     parser.add_argument('--sampling_rate', type=int, default=100,
                         help='timeserie decimation ratio')
     parser.add_argument('--remove_trend_win_ms', type=int, default=100,
@@ -35,7 +36,7 @@ def main() -> None:
     args = _parse_args()
 
     args.csv_folder.mkdir(parents=True, exist_ok=True)
-    if exp_name is None:
+    if args.exp_name is None:
         # find all abf files in experiment folder and write corresponding csv files
         abf_files = list(args.abf_folder.glob('*.abf'))
         for abf_file in abf_files:

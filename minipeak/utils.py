@@ -3,7 +3,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 from pathlib import Path
 import  pandas as pd
-import torch
 import time
 from typing import Optional, Tuple
 import uuid

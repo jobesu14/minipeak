@@ -8,13 +8,13 @@ import torch.nn as nn
 import torch.optim as optim
 from typing import Tuple
 
-from minipeak.cnn_model import CNN
+from minipeak.network.cnn_model import CNN
 from minipeak.preprocessing import load_training_dataset
-from minipeak.training.utils import \
+from minipeak.utils import \
     save_false_positives_to_image, save_false_negatives_to_image, \
     filter_data_window, create_experiment_folder, save_experiment_to_json, \
     save_training_resultsto_csv
-from minipeak.training.visualization import plot_training_curves
+# from minipeak.visualization import plot_training_curves
 
 
 def _parse_args() -> argparse.Namespace:
@@ -149,8 +149,8 @@ def _position_error(X: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor)
 
 
 def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer,
-           train_loader: torch.utils.data.DataLoader, epochs: int, no_peaks_zone: int) \
-        -> float:
+           train_loader: torch.utils.data.DataLoader, epochs: int, no_peaks_zone: int,
+           device: torch.device) -> float:
     # Training results
     training_df = pd.DataFrame(columns=['epoch', 'loss', 'accuracy'])
 
@@ -168,22 +168,31 @@ def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer
         for batch_idx, (X, y) in enumerate(train_loader):
             # Zero the gradients
             optimizer.zero_grad()
-            
+
+            # Move data to device
+            X = X.to(device)
+            y = y.to(device)
+
             # Forward pass
             y_pred = model(X)
-            
+
             # Check if a minipeak is part of this batch
             y = _peaks_info(y, no_peaks_padding=no_peaks_zone)
-        
+
+            # Backward pass
+            loss.backward()
+            optimizer.step()
+
+            # Move data to cpu
+            X = X.cpu()
+            y = y.cpu()
+            y_pred = y_pred.cpu()
+
             # Compute loss and accuracy
             loss = _loss(y_pred, y)
             acc = _class_accuracy(y_pred, y)
             pos_err = _position_error(X, y_pred, y)
-            
-            # Backward pass
-            loss.backward()
-            optimizer.step()
-            
+
             # Update the epoch loss and accuracy
             epoch_loss += loss.item()
             epoch_acc += acc.item()
@@ -202,8 +211,8 @@ def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer
 
 
 def _evaluate(experiment_folder: Path, model: nn.Module,
-              test_data_loader: torch.utils.data.DataLoader, no_peaks_zone: int) \
-        -> ValidationResults:
+              test_data_loader: torch.utils.data.DataLoader, no_peaks_zone: int,
+              device: torch.device) -> ValidationResults:
     # Set the model to evaluation mode
     model.eval()
 
@@ -212,11 +221,20 @@ def _evaluate(experiment_folder: Path, model: nn.Module,
 
     # Loop over the validation data
     for X, y in test_data_loader:
+        # Move data to device
+        X = X.to(device)
+        y = y.to(device)
+
         # Forward pass
         y_pred = model(X)
 
         # Check if a minipeak is part of this batch
         y = _peaks_info(y, no_peaks_padding=no_peaks_zone)
+
+        # Move data to cpu
+        X = X.cpu()
+        y = y.cpu()
+        y_pred = y_pred.cpu()
 
         # Compute the loss and accuracy
         loss = _loss(y_pred, y)
@@ -245,7 +263,7 @@ def _evaluate(experiment_folder: Path, model: nn.Module,
 def main() -> None:
     logging.basicConfig(level='INFO')
     args = _parse_args()
-    
+
     device = \
         torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
     logging.info(f'Using device: {device}')
@@ -257,7 +275,7 @@ def main() -> None:
         _training_data(args.csv_folder, args.window_size, args.batch_size)
 
     # Initialize the model, optimizer and loss function
-    model = CNN(window_size=args.window_size)
+    model = CNN(window_size=args.window_size).to(device)
     optimizer = optim.Adam(model.parameters(),
                            lr=args.learning_rate,
                            weight_decay=args.weight_decay)
@@ -267,10 +285,11 @@ def main() -> None:
     
     # Train the model
     _train(experiment_folder, model, optimizer, train_data_loader, args.epochs,
-           no_peaks_zone)
+           no_peaks_zone, device)
     
     # Evaluate the model
-    validation = _evaluate(experiment_folder, model, test_data_loader, no_peaks_zone)
+    validation = _evaluate(experiment_folder, model, test_data_loader, no_peaks_zone,
+                           device)
 
     # Save the training hyperparameters and validation results
     save_experiment_to_json(experiment_folder, args.epochs, args.learning_rate,

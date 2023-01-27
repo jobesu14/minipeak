@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 
 from minipeak import styles as ps
-from minipeak.cnn_model import CNN
+from minipeak.network.cnn_model import CNN
 from minipeak.preprocessing import split_into_overlapping_windows, read_abf, \
     remove_low_freq_trend
 
@@ -25,6 +25,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument('--window-size', type=int, default=80,
                         help='window size in ms (MUST match the model window size '
                         'used during training)')
+    parser.add_argument('--no-cuda', action='store_true', help='disable cuda')
     return parser.parse_args()
 
 
@@ -41,7 +42,8 @@ def _plot_experiment(experiment_df: pd.DataFrame, peaks_found: np.ndarray) \
     ps.show(block=True)
 
 
-def _find_mini_peaks(model: CNN, amplitude: pd.DataFrame, window_size: int) -> np.ndarray:
+def _find_mini_peaks(model: CNN, amplitude: pd.DataFrame, window_size: int,
+                     device: torch.device) -> np.ndarray:
     model.eval()
 
     windows = split_into_overlapping_windows(amplitude['amplitude'].values, window_size,
@@ -50,7 +52,8 @@ def _find_mini_peaks(model: CNN, amplitude: pd.DataFrame, window_size: int) -> n
     for win_num, window in enumerate(windows):
         # Predict the peak probability and peak time in the window with the CNN.
         torch_win = torch.from_numpy(window).reshape(-1, 1, window_size).float()
-        pred = model(torch_win)
+        torch_win = torch_win.to(device)
+        pred = model(torch_win).cpu()
 
         # First value of NN output is the estimated peak probability.
         win_has_peak = bool(pred[0, 0] > 0.5)
@@ -72,6 +75,10 @@ def main() -> None:
     logging.basicConfig(level='INFO')
     args =_parse_args()
 
+    device = \
+        torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
+    logging.info(f'Using device: {device}')
+
     # Load the data from the abf file and optionally perform some pre-processing.
     electrophy_df = read_abf(args.abf_file, sampling_rate=args.sampling_rate)
     electrophy_df['amplitude'] = \
@@ -82,9 +89,10 @@ def main() -> None:
     # Load the trained CNN model.
     model = CNN(window_size=args.window_size)
     model.load_state_dict(torch.load(args.model_path))
+    model = model.to(device)
 
     # Find mini peaks time.
-    peaks_time = _find_mini_peaks(model, electrophy_df, window_size=args.window_size)
+    peaks_time = _find_mini_peaks(model, electrophy_df, args.window_size, device)
 
     # Plot the result of the mini peaks detection
     _plot_experiment(electrophy_df, peaks_time)

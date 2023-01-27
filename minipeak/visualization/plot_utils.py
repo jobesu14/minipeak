@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from minipeak import styles as ps
-from minipeak.training.utils import convert_minis_to_amplitude
+from minipeak.utils import convert_minis_to_amplitude
 
 
 def plot_training_windows(amp_win: np.ndarray, minis_win: np.ndarray) -> None:

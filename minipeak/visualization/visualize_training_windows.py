@@ -3,7 +3,7 @@ from pathlib import Path
 
 from minipeak import styles as ps
 from minipeak.preprocessing import load_windowed_dataset
-from minipeak.training.visualization import plot_training_windows
+from minipeak.visualization.plot_utils import plot_training_windows
 
 
 def _parse_args() -> argparse.Namespace:

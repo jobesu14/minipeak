@@ -19,18 +19,13 @@ metadata = dict(
     install_requires=['pyabf',
                       'matplotlib>=3.2.1',
                       'mplcursors',
-                      'openpyxl'
+                      'openpyxl',
                       ],
     extras_require={
                    'dev': ['pep8-naming',
                            'flake8',
                            'mypy',
                            'pytest>=3.9'],
-                   },
-    entry_points={
-        'console_scripts': [
-            'plot_minis = minipeak.scripts.plot_minis:main'
-        ]
     },
     zip_safe=False,
     include_package_data=True,
