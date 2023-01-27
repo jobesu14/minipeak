@@ -60,7 +60,7 @@ def create_experiment_folder(root_folder_path: Path) -> Path:
     return experiment_folder
 
 
-def save_training_resultsto_csv(experiment_folder: Path, training_df: pd.DataFrame) \
+def save_training_results_to_csv(experiment_folder: Path, training_df: pd.DataFrame) \
         -> None:
     training_df.to_csv(experiment_folder / 'training_results.csv', index=False)
 

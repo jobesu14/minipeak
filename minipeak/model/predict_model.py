@@ -30,8 +30,15 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _plot_experiment(experiment_df: pd.DataFrame, peaks_found: np.ndarray) \
+def _plot_prediction_output(experiment_df: pd.DataFrame, peaks_found: np.ndarray) \
         -> None:
+    """
+    Plot the electrophysiology with the mini peaks found by the CNN model in the same
+    graph.
+
+    :param experiment_df: dataframe containing the electrophysiology timeserie
+    :param peaks_found: array of indices of the peaks found in the timeserie
+    """
     # plot minis_df and timeserie_df in same graph with 'time' as x axis
     _, ax = plt.subplots()
     ax.plot(experiment_df['amplitude'][peaks_found], 'o', label='mini peaks')
@@ -45,6 +52,15 @@ def _plot_experiment(experiment_df: pd.DataFrame, peaks_found: np.ndarray) \
 
 def _find_mini_peaks(model: CNN, amplitude: pd.DataFrame, window_size: int,
                      device: torch.device) -> np.ndarray:
+    """
+    Find the mini peaks in the timeserie using the CNN model.
+
+    :param model: CNN trained model to use for peak detection
+    :param amplitude: timeserie amplitude
+    :param window_size: size of the window used to predict the peak positions
+    :param device: device to use for the prediction
+    :return: array of indices of the peaks found in the timeserie
+    """
     model.eval()
 
     windows = split_into_overlapping_windows(amplitude['amplitude'].values, window_size,
@@ -97,7 +113,7 @@ def main() -> None:
     peaks_time = _find_mini_peaks(model, electrophy_df, args.window_size, device)
 
     # Plot the result of the mini peaks detection
-    _plot_experiment(electrophy_df, peaks_time)
+    _plot_prediction_output(electrophy_df, peaks_time)
     logging.info(f'Found {len(peaks_time)} mini peaks in {args.abf_file.name}')
 
 

@@ -13,7 +13,7 @@ from minipeak.preprocessing import load_training_dataset
 from minipeak.utils import \
     save_false_positives_to_image, save_false_negatives_to_image, \
     filter_data_window, create_experiment_folder, save_experiment_to_json, \
-    save_training_resultsto_csv
+    save_training_results_to_csv
 # from minipeak.visualization import plot_training_curves
 
 
@@ -34,6 +34,10 @@ def _parse_args() -> argparse.Namespace:
 
 @dataclass
 class ValidationResults:
+    """
+    Store the results of the validation of the model to compute the validation set
+    metrics.
+    """
     nb_samples: int = 0
     sum_loss: float = 0
     sum_accuracy: float = 0
@@ -78,6 +82,13 @@ def _training_data(csv_folder: Path, window_size: int, batch_size: int) \
     timeseries will be split into chunks of data called 'windows'. The windows are
     overlapping to make sure that the peaks are not truncated in a way that would
     make it difficult for the model to detect them.
+
+    :param csv_folder: path to the folder containing the training csv files with the
+    following columns: 'time', 'amplitude', 'mins' (= peak amplitude)
+    :param window_size: size of the window used to predict the peak positions
+    :batch_size: size of the batch used for training
+    :return: a tuple of two dataloaders, one for the training set and one for the
+    evaluation set.
     """
     all_X, all_y = load_training_dataset(csv_folder, window_size)
     # We want to have the same amount of windows that contain a minis and windows
@@ -104,6 +115,14 @@ def _training_data(csv_folder: Path, window_size: int, batch_size: int) \
 
 
 def _peaks_info(peak_window: torch.Tensor, no_peaks_padding: int) -> torch.Tensor:
+    """
+    Add a "dead zone" around the edges of the window to avoid detecting peaks that
+    are truncated by the window's borders.
+
+    :param peak_window: tensor containing the windowed data of the timeseries.
+    :param no_peaks_padding: number of samples to ignore at the edges of the window.
+    :return: a tensor containing the filtered peaks information within the winodw.
+    """
     has_peaks = \
         torch.any(peak_window[:, :, no_peaks_padding:-no_peaks_padding], dim=2).float()
     peak_pos = \
@@ -113,6 +132,14 @@ def _peaks_info(peak_window: torch.Tensor, no_peaks_padding: int) -> torch.Tenso
 
 
 def _loss(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the loss of the model. The loss is composed of two parts:
+    - the class loss (window contains a peak or not)
+    - the mean squared error (peak position in window) if a peak is present
+
+    :param y_pred: tensor containing the predictions of the model (peak or no peak)
+    :param y_true: tensor containing the ground truth (peak or no peak)
+    """
     # Class loss (window contains a peak or not).
     loss = nn.BCELoss()(y_pred[:,0], y_true[:,0])
     
@@ -122,12 +149,23 @@ def _loss(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
 
 
 def _class_accuracy(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+    """ Compute the accuracy of the model on the class prediction. """
     correct = (y_pred[:,0] > 0.5) == (y_true[:,0] > 0.5)
     return correct.float().mean()
 
 
 def _position_error(X: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) \
         -> torch.Tensor:
+    """
+    Compute the peak position prediction error within the window. The root mean squared
+    error is computed on the percentage of the window where the peak is located.
+    Note: the window not containing a peak has its peak position set to 0 (within window
+    peak dead zone) to make sure it doesn't impact the positions lost.
+
+    :param X: tensor containing the windowed data of the timeseries
+    :param y_pred: tensor containing the predictions of the model (peak position)
+    :param y_true: tensor containing the ground truth (peak position)
+    """
     # Get the percentage of the window where the peaks are located.
     t_pred_perc = y_pred[:,1]
     t_true_perc = y_true[:,1]
@@ -152,6 +190,18 @@ def _position_error(X: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor)
 def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer,
            train_loader: torch.utils.data.DataLoader, epochs: int, no_peaks_zone: int,
            device: torch.device) -> float:
+    """
+    Main loop to train the model.
+
+    :param experiment_folder: folder where the training results will be saved into a csv
+    file containing the model loss and accuracy for each epoch.
+    :param model: model to train.
+    :param optimizer: optimizer to use for the training.
+    :param train_loader: data loader for the training data.
+    :param epochs: number of epochs to train the model.
+    :param no_peaks_zone: number of samples to ignore at both edges of the window.
+    :param device: device to use for the training.
+    """
     # Training results
     training_df = pd.DataFrame(columns=['epoch', 'loss', 'accuracy'])
 
@@ -207,13 +257,23 @@ def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer
                      f'position error={epoch_pos_err / (batch_idx+1):.4f}')
 
     # Plot and save training results
-    save_training_resultsto_csv(experiment_folder, training_df)
+    save_training_results_to_csv(experiment_folder, training_df)
     # plot_training_curves(training_df)
 
 
 def _evaluate(experiment_folder: Path, model: nn.Module,
               test_data_loader: torch.utils.data.DataLoader, no_peaks_zone: int,
               device: torch.device) -> ValidationResults:
+    """
+    Main loop to evaluate the model.
+
+    :param experiment_folder: folder where the false positive windows and the false
+    negative windows will be saved.
+    :param model: model to train.
+    :param test_data_loader: data loader for the training data.
+    :param no_peaks_zone: number of samples to ignore at both edges of the window.
+    :param device: device to use for the training.
+    """
     # Set the model to evaluation mode
     model.eval()
 

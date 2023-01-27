@@ -7,7 +7,14 @@ from minipeak.preprocessing import read_abf, remove_low_freq_trend
 def _group_minis_and_electrophy(minis_df: pd.DataFrame, electrophy_df: pd.DataFrame) \
         -> pd.DataFrame: 
     """ 
-    Expand minis_df to match electrophy_df timestep. 
+    Combine the mini-peaks amplitude dataframe and the electrophysiology dataframe into a
+    single dataframe where each row is a time point with the electrophysiology amplitude
+    and the corresponding mini-peaks amplitude. Mini-peaks amplitude is set to 0.0 if no
+    peak for that time point.
+
+    :param minis_df: dataframe with mini-peaks amplitude and time
+    :param electrophy_df: dataframe with electrophysiology amplitude and time
+    :return: dataframe with electrophysiology amplitude and mini-peaks amplitude
     """
     experiment_df = electrophy_df.copy()
     # remove row with no 'amplitude' data
@@ -24,8 +31,19 @@ def _group_minis_and_electrophy(minis_df: pd.DataFrame, electrophy_df: pd.DataFr
     return experiment_df
 
 
-
 def _read_minis(xls_file: Path, exp_name: str) -> pd.DataFrame:
+    """
+    Read the mini-peaks amplitude from the excel file. The excel file must have a sheet
+    named as the experiment name. The sheet must have the following columns:
+    - time: time of the mini-peak in ms in column B
+    - amplitude: amplitude of the mini-peak in mV in column C
+    - baseline: baseline of the mini-peak in mV in column G
+
+    :param xls_file (Path): path to the excel file for this experiment
+    :param exp_name (str): name of the experiment (must correspnd to one of the sheet
+    name in the excel file)
+    :return: dataframe with mini-peaks amplitude and time
+    """
     # create a pandas dataframe with the columns B and G starting at row 5
     df = pd.read_excel(xls_file, sheet_name=exp_name, usecols="B,C,G", skiprows=4,
                        names=['time', 'amplitude', 'baseline'])
@@ -41,6 +59,22 @@ def _read_minis(xls_file: Path, exp_name: str) -> pd.DataFrame:
 def load_experiment_from_foder(xls_file: Path, abf_file: Path, exp_name: str,
                                sampling_rate: int, remove_trend_win_ms: int) \
         -> pd.DataFrame:
+    """
+    Load the experiment data from the excel file and the electrophysiology data from the
+    abf file. The excel file must have a sheet named as the experiment name. The sheet
+    must have the following columns:
+    - time: time of the mini-peak in ms in column B
+    - amplitude: amplitude of the mini-peak in mV in column C
+    - baseline: baseline of the mini-peak in mV in column G
+
+    :param xls_file (Path): path to the excel file for this experiment
+    :param abf_file (Path): path to the abf file for this experiment
+    :param exp_name (str): name of the experiment (must correspnd to one of the sheet
+    name in the excel file)
+    :param sampling_rate (int): dwosamplig ratio for the electrophysiology data
+    :param remove_trend_win_ms (int): size of the window in ms to remove the trend from
+    the electrophysiology signal
+    """
     minis_df = _read_minis(xls_file, exp_name)
     electrophy_df = read_abf(abf_file, sampling_rate=sampling_rate)
     electrophy_df['amplitude'] = remove_low_freq_trend(electrophy_df['amplitude'],

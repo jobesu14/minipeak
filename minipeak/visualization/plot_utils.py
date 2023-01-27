@@ -7,6 +7,12 @@ from minipeak.utils import convert_minis_to_amplitude
 
 
 def plot_training_windows(amp_win: np.ndarray, minis_win: np.ndarray) -> None:
+    """
+    Plot the training windows one by one iterativelly in a new figure.
+
+    :param amp_win: array of amplitude windows
+    :param minis_win: array of mini-peaks windows
+    """
     # load data from csv file
     min_amplitude = min([min(amp_win) for amp_win in amp_win])
     max_amplitude = max([max(amp_win) for amp_win in amp_win])
@@ -28,6 +34,13 @@ def plot_training_windows(amp_win: np.ndarray, minis_win: np.ndarray) -> None:
 
 def plot_training_curves(training_results_df: pd.DataFrame, plot_loss: bool = False) \
         -> None:
+    """
+    Plot the evolution of the model training accuracy and loss.
+
+    :param training_results_df: dataframe with the training results. Must have the
+    epoch, accuracy and optionally the loss columns.
+    :param plot_loss: if True, plot the loss curve as well
+    """
     ps.set_style('default')
     # plot training results
     _, ax = plt.subplots()

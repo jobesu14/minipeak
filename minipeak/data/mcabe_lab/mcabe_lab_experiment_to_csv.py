@@ -26,6 +26,24 @@ def _parse_args() -> argparse.Namespace:
 def _write_experiment_to_csv(xls_file: Path, abf_file: Path, csv_folder: Path, 
                              exp_name: str, sampling_rate:int,
                              remove_trend_win_ms: int) -> None:
+    """
+    Convert the experiment wet lab data into a csv file that contains the training data
+    for the mini detection algorithm.
+    Input data:
+    - xls_file: excel file containing the electrophysiology signal and the mini-peaks
+    The csv file contains the time in second, the 
+    electrophysiology signal in mV and the mini-peaks manually curated by the 
+    experimenter.
+
+    :param xls_file (Path): excel file containing the currated mini-peaks times
+    :param abf_file (Path): abf file containing the electrophysiology signal in mV
+    :param csv_folder (Path): csv file to write the training data into
+    :param exp_name (str): name of the experiment (must correspnd to the abf file name
+    and the tab name in the excel file)
+    :param sampling_rate (int): dwosamplig ratio for the electrophysiology data
+    :param remove_trend_win_ms (int): size of the window in ms to remove the trend from
+    the electrophysiology signal
+    """
     experiment_df = load_experiment_from_foder(xls_file, abf_file, exp_name,
                                                sampling_rate, remove_trend_win_ms)
     experiment_df.to_csv(csv_folder / f'{exp_name}.csv', index=False)
