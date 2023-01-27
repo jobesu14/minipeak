@@ -6,6 +6,7 @@ from minipeak import styles as ps
 
 
 def _parse_args() -> argparse.Namespace:
+    """ Parse the arguments provided through the command line. """
     parser = argparse.ArgumentParser()
     parser.add_argument('abf_folder', type=Path,
                         help='path to folder containing abf files')
@@ -31,6 +32,7 @@ def _write_experiment_to_csv(xls_file: Path, abf_file: Path, csv_folder: Path,
 
 
 def main() -> None:
+    """ Main application when run from the command line interface. """
     ps.set_style('default')
 
     args = _parse_args()
@@ -51,7 +53,5 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    """
-    Main application when run as a script.
-    """
+    """ Main application when run as a script. """
     main()

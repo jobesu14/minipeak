@@ -8,6 +8,7 @@ from minipeak import styles as ps
 
 
 def _parse_args() -> argparse.Namespace:
+    """ Parse the arguments provided through the command line. """
     parser = argparse.ArgumentParser()
     parser.add_argument('csv_file', type=Path, help='path to experiment csv file')
     return parser.parse_args()
@@ -27,6 +28,7 @@ def _plot_experiment(experiment_df: pd.DataFrame, exp_name: str) \
 
 
 def main() -> None:
+    """ Main application when run from the command line interface. """
     ps.set_style('default')
 
     args = _parse_args()
@@ -36,7 +38,5 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    """
-    Main application when run as a script.
-    """
+    """ Main application when run as a script. """
     main()

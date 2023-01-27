@@ -18,6 +18,7 @@ from minipeak.utils import \
 
 
 def _parse_args() -> argparse.Namespace:
+    """ Parse the arguments provided through the command line. """
     parser = argparse.ArgumentParser(
         description="Train a CNN model to detect discriminative minis in a time window")
     parser.add_argument('csv_folder', type=Path, help='path to the training data')
@@ -261,6 +262,7 @@ def _evaluate(experiment_folder: Path, model: nn.Module,
 
 
 def main() -> None:
+    """ Main application when run from the command line interface. """
     logging.basicConfig(level='INFO')
     args = _parse_args()
 
@@ -304,4 +306,5 @@ def main() -> None:
 
 
 if __name__ == '__main__':
+    """ Main application when run as a script. """
     main()

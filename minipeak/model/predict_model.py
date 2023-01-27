@@ -13,6 +13,7 @@ from minipeak.preprocessing import split_into_overlapping_windows, read_abf, \
 
 
 def _parse_args() -> argparse.Namespace:
+    """ Parse the arguments provided through the command line. """
     parser = argparse.ArgumentParser()
     parser.add_argument('abf_file', type=Path,
                         help='path to electrophy amplitude abf file')
@@ -71,6 +72,7 @@ def _find_mini_peaks(model: CNN, amplitude: pd.DataFrame, window_size: int,
 
 
 def main() -> None:
+    """ Main application when run from the command line interface. """
     ps.set_style('default')
     logging.basicConfig(level='INFO')
     args =_parse_args()
@@ -100,7 +102,5 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    """
-    Main application when run as a script.
-    """
+    """ Main application when run as a script. """
     main()

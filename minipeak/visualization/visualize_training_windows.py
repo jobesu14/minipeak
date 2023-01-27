@@ -7,6 +7,7 @@ from minipeak.visualization.plot_utils import plot_training_windows
 
 
 def _parse_args() -> argparse.Namespace:
+    """ Parse the arguments provided through the command line. """
     parser = argparse.ArgumentParser(
         description='Plot the training data windows for a given experiment.')
     parser.add_argument('csv_file', type=Path,
@@ -17,6 +18,7 @@ def _parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """ Main application when run from the command line interface. """
     ps.set_style('default')
 
     args = _parse_args()
@@ -26,7 +28,5 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    """
-    Main application when run as a script.
-    """
+    """ Main application when run as a script. """
     main()
