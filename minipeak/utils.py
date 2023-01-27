@@ -10,6 +10,7 @@ import uuid
 
 def convert_minis_to_amplitude(amplitude: np.ndarray, minis: np.ndarray) -> \
         Tuple[np.ndarray, np.ndarray]:
+    """ Convert minis boolean data into amplitude. """
     peaks_time = []
     peaks_amp = []
     for t, (amp, mini) in enumerate(zip(amplitude, minis)):
@@ -21,6 +22,14 @@ def convert_minis_to_amplitude(amplitude: np.ndarray, minis: np.ndarray) -> \
 
 def peak_percent_to_time_series(peak_percent: float, amplitude: np.ndarray) -> \
         Tuple[np.ndarray, np.ndarray]:
+    """
+    Compute the timeserie (time, amplitude) of a peak located at 'peak_percent'
+    (percentage over the whole 'amplitude' array).
+
+    :param peak_percent: percentage of the peak position over the whole 'amplitude' array
+    :param amplitude: amplitude data of the timeserie
+    :return: timeserie (time, amplitude) of the peak
+    """
     peak_pos_index = int(peak_percent * amplitude.shape[0])
     minis = np.zeros(amplitude.shape[0], dtype=bool)
     minis[peak_pos_index] = True

@@ -9,7 +9,7 @@ import torch.optim as optim
 from typing import Tuple
 
 from minipeak.network.cnn_model import CNN
-from minipeak.preprocessing import load_training_dataset
+from minipeak.preprocessing import load_training_datasets
 from minipeak.utils import \
     save_false_positives_to_image, save_false_negatives_to_image, \
     filter_data_window, create_experiment_folder, save_experiment_to_json, \
@@ -90,7 +90,7 @@ def _training_data(csv_folder: Path, window_size: int, batch_size: int) \
     :return: a tuple of two dataloaders, one for the training set and one for the
     evaluation set.
     """
-    all_X, all_y = load_training_dataset(csv_folder, window_size)
+    all_X, all_y = load_training_datasets(csv_folder, window_size)
     # We want to have the same amount of windows that contain a minis and windows
     # that don't contain a minis to balance the learning.
     all_X, all_y = filter_data_window(all_X, all_y)

@@ -2,11 +2,19 @@ import numpy as np
 from pathlib import Path
 import  pandas as pd
 import pyabf
-import torch
 from typing import Tuple
 
 
 def read_abf(abf_file: Path, sampling_rate: int = 1) -> pd.DataFrame:
+    """
+    Read the electrophysiology data from the abf file and return a dataframe with
+    time and amplitude columns. If sampling_rate is greater than 1, the electrophysiology
+    data will be downsampled by the given sampling rate.
+
+    :param abf_file (Path): path to the abf file for this experiment
+    :param sampling_rate (int): sampling rate to use for the electrophysiology data
+    :return: dataframe with electrophysiology amplitude and time
+    """
     abf = pyabf.ABF(abf_file)
     time = abf.sweepX
     amplitude = abf.sweepY
@@ -17,13 +25,15 @@ def read_abf(abf_file: Path, sampling_rate: int = 1) -> pd.DataFrame:
     return df
 
 
-def remove_low_freq_trend(serie_ms: pd.Series, window_ms: int) -> pd.DataFrame: 
-     trend = serie_ms.rolling(window=window_ms, center=True).mean()
-     return serie_ms - trend
+def remove_low_freq_trend(serie_ms: pd.Series, window_ms: int) -> pd.DataFrame:
+    """ Remove the low frequency trend from the timeserie. """
+    trend = serie_ms.rolling(window=window_ms, center=True).mean()
+    return serie_ms - trend
 
 
 def split_into_overlapping_windows(time_series: np.ndarray, window_size: int,
                                    overlap: int) -> np.ndarray:
+    """ Split the time series into overlapping windows of size window_size. """
     # Make sure time_series has a length which is a multiple of window_size,
     # if it is not the case fill with zeros
     if len(time_series) % window_size != 0:
@@ -41,15 +51,23 @@ def split_into_overlapping_windows(time_series: np.ndarray, window_size: int,
     return windows
 
 
-def load_experiment_from_csv(csv_file: Path) -> pd.DataFrame:
-    # Read csv file into a pandas dataframe
+def load_training_data_from_csv(csv_file: Path) -> pd.DataFrame:
+    """ Load the triannig data from the csv file. """
     experiment_df = pd.read_csv(csv_file)
     return experiment_df
 
 
 def load_windowed_dataset(csv_file: Path, window_size: int = 100) \
         -> Tuple[np.ndarray, np.ndarray]:
-    data_df = load_experiment_from_csv(csv_file)
+    """
+    Load the training data from the csv file and split it into overlapping windows of
+    size window_size.
+
+    :param csv_file (Path): path to the csv file containing the training data
+    :param window_size (int): size of the windows to use for the training data
+    :return: tuple of numpy arrays containing the amplitude and minis windows
+    """
+    data_df = load_training_data_from_csv(csv_file)
 
     # Split the data into amplitude (input) and minis (output) variables
     amplitude = data_df['amplitude'].values
@@ -61,8 +79,16 @@ def load_windowed_dataset(csv_file: Path, window_size: int = 100) \
     return amp_win, minis_win
 
 
-def load_training_dataset(folder: Path, window_size: int = 100) \
-        -> torch.utils.data.TensorDataset:
+def load_training_datasets(folder: Path, window_size: int = 100) \
+        -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Load and concatenate all the training datasets from the training data csv file in the
+    given folder.
+
+     :param folder (Path): path to the folder containing the training data csv files
+     :param window_size (int): size of the windows to use for the training data
+     :return: tuple of numpy arrays containing the amplitude and minis windowed datasets
+    """
     csv_files = folder.glob('*.csv')
 
     all_X = np.empty((0, 1, window_size))
