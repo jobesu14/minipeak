@@ -45,7 +45,7 @@ def _plot_prediction_output(experiment_df: pd.DataFrame, peaks_found: np.ndarray
     ax.plot(experiment_df['amplitude'], label='amplitude')
     ax.set_xlabel('time (s)')
     ax.set_ylabel('amplitude (mV)')
-    ax.set_title(f'peaks detected')
+    ax.set_title('peaks detected')
     ax.legend()
     ps.show(block=True)
 
@@ -74,14 +74,15 @@ def _find_mini_peaks(model: CNN, amplitude: pd.DataFrame, window_size: int,
 
         # First value of NN output is the estimated peak probability.
         win_has_peak = bool(pred[0, 0] > 0.5)
-        # Second value of NN output is the estimated peak position in percent of the window.
+        # Second value of NN output is the estimated peak position in percent of the
+        # window.
         win_peak_index = int(float(pred[0, 1]) * window_size)
-        
-        # If a peak has been predicted in this window, add the time of the peak computed 
+
+        # If a peak has been predicted in this window, add the time of the peak computed
         # from the begining of the timeserie.
         if win_has_peak:
             global_peak_index = int(win_num / 2.0 * window_size) + win_peak_index
-            global_peak_index += amplitude.index[0] #  amplitude index doesn't start at 0
+            global_peak_index += amplitude.index[0]  # amplitude index doesn't start at 0
             peak_indices.append(global_peak_index)
 
     return np.array(peak_indices)
@@ -91,7 +92,7 @@ def main() -> None:
     """ Main application when run from the command line interface. """
     ps.set_style('default')
     logging.basicConfig(level='INFO')
-    args =_parse_args()
+    args = _parse_args()
 
     device = \
         torch.device('cuda' if torch.cuda.is_available() and not args.no_cuda else 'cpu')
@@ -101,7 +102,7 @@ def main() -> None:
     electrophy_df = read_abf(args.abf_file, sampling_rate=args.sampling_rate)
     electrophy_df['amplitude'] = \
         remove_low_freq_trend(electrophy_df['amplitude'],
-                                window_ms=args.remove_trend_win_ms)
+                              window_ms=args.remove_trend_win_ms)
     electrophy_df.dropna(subset=['amplitude'], inplace=True)
 
     # Load the trained CNN model.

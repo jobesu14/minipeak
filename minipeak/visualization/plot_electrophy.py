@@ -23,7 +23,7 @@ def _plot_electrophy(abf_file) -> None:
     ax.plot(time, amplitude, label='timeserie')
     ax.set_xlabel('time (s)')
     ax.set_ylabel('amplitude (mV)')
-    ax.set_title(f'mini analysis')
+    ax.set_title('mini analysis')
     ax.legend()
     ps.show(block=True)
 

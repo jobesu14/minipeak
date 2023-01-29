@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
 
+
 class CNN(nn.Module):
     """ 1D CNN model for minipeak detection. """
-    
+
     def __init__(self, window_size: int):
         super(CNN, self).__init__()
         self.window_size = window_size
@@ -24,7 +25,7 @@ class CNN(nn.Module):
         x = self.pool(x)
         x = self.dropout1(x)
         x = torch.flatten(x, 1)
-        
+
         # Fully connected layers
         x = self.fc1(x)
         x = torch.relu(x)

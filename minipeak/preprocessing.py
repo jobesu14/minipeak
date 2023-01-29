@@ -1,6 +1,6 @@
 import numpy as np
 from pathlib import Path
-import  pandas as pd
+import pandas as pd
 import pyabf
 from typing import Tuple
 
@@ -21,7 +21,7 @@ def read_abf(abf_file: Path, sampling_rate: int = 1) -> pd.DataFrame:
     if sampling_rate > 1:
         time = time[::sampling_rate]
         amplitude = amplitude[::sampling_rate]
-    df = pd.DataFrame({'time':time, 'amplitude':amplitude})
+    df = pd.DataFrame({'time': time, 'amplitude': amplitude})
     return df
 
 
@@ -73,7 +73,7 @@ def load_windowed_dataset(csv_file: Path, window_size: int = 100) \
     amplitude = data_df['amplitude'].values
     minis = data_df['minis'].astype('bool').values
 
-    amp_win= split_into_overlapping_windows(amplitude, window_size, int(window_size/2))
+    amp_win = split_into_overlapping_windows(amplitude, window_size, int(window_size/2))
     minis_win = split_into_overlapping_windows(minis, window_size, int(window_size/2))
 
     return amp_win, minis_win
@@ -91,16 +91,16 @@ def load_training_datasets(folder: Path, window_size: int = 100) \
     """
     csv_files = folder.glob('*.csv')
 
-    all_X = np.empty((0, 1, window_size))
+    all_x = np.empty((0, 1, window_size))
     all_y = np.empty((0, 1, window_size))
-    
-    for csv_file in csv_files:
-        X, y = load_windowed_dataset(csv_file, window_size)
 
-        X = X.reshape(-1, 1, window_size)
+    for csv_file in csv_files:
+        x, y = load_windowed_dataset(csv_file, window_size)
+
+        x = x.reshape(-1, 1, window_size)
         y = y.reshape(-1, 1, window_size)
 
-        all_X = np.concatenate([all_X, X], axis=0)
+        all_x = np.concatenate([all_x, x], axis=0)
         all_y = np.concatenate([all_y, y], axis=0)
 
-    return all_X, all_y
+    return all_x, all_y

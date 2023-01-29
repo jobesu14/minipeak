@@ -5,8 +5,8 @@ from minipeak.preprocessing import read_abf, remove_low_freq_trend
 
 
 def _group_minis_and_electrophy(minis_df: pd.DataFrame, electrophy_df: pd.DataFrame) \
-        -> pd.DataFrame: 
-    """ 
+        -> pd.DataFrame:
+    """
     Combine the mini-peaks amplitude dataframe and the electrophysiology dataframe into a
     single dataframe where each row is a time point with the electrophysiology amplitude
     and the corresponding mini-peaks amplitude. Mini-peaks amplitude is set to 0.0 if no
@@ -19,7 +19,7 @@ def _group_minis_and_electrophy(minis_df: pd.DataFrame, electrophy_df: pd.DataFr
     experiment_df = electrophy_df.copy()
     # remove row with no 'amplitude' data
     experiment_df.dropna(subset=['amplitude'], inplace=True)
-    experiment_df['minis'] = 0.0 ## add minis column filled with zeros
+    experiment_df['minis'] = 0.0  # add minis column filled with zeros
 
     mini_id = 0
     t_next_mini = minis_df['time'].iloc[mini_id]
@@ -78,6 +78,6 @@ def load_experiment_from_foder(xls_file: Path, abf_file: Path, exp_name: str,
     minis_df = _read_minis(xls_file, exp_name)
     electrophy_df = read_abf(abf_file, sampling_rate=sampling_rate)
     electrophy_df['amplitude'] = remove_low_freq_trend(electrophy_df['amplitude'],
-                                                        window_ms=remove_trend_win_ms)
+                                                       window_ms=remove_trend_win_ms)
     experiment_df = _group_minis_and_electrophy(minis_df, electrophy_df)
     return experiment_df

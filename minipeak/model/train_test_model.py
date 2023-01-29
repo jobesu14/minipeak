@@ -46,7 +46,7 @@ class ValidationResults:
     false_negatives: int = 0
     true_positives: int = 0
     true_negatives: int = 0
-    
+
     def add_results(self, loss: float, accuracy: float, pos_err: float,
                     true_positives: int, false_positives: int, true_negatives: int,
                     false_negatives: int):
@@ -58,7 +58,7 @@ class ValidationResults:
         self.false_positives += false_positives
         self.true_negatives += true_negatives
         self.false_negatives += false_negatives
-    
+
     def loss(self) -> float:
         return self.sum_loss / self.nb_samples
 
@@ -78,7 +78,7 @@ class ValidationResults:
 def _training_data(csv_folder: Path, window_size: int, batch_size: int) \
         -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
     """
-    Create a pytorch Dataset from list of experiments csv files in folder. The 
+    Create a pytorch Dataset from list of experiments csv files in folder. The
     timeseries will be split into chunks of data called 'windows'. The windows are
     overlapping to make sure that the peaks are not truncated in a way that would
     make it difficult for the model to detect them.
@@ -90,14 +90,14 @@ def _training_data(csv_folder: Path, window_size: int, batch_size: int) \
     :return: a tuple of two dataloaders, one for the training set and one for the
     evaluation set.
     """
-    all_X, all_y = load_training_datasets(csv_folder, window_size)
+    all_x, all_y = load_training_datasets(csv_folder, window_size)
     # We want to have the same amount of windows that contain a minis and windows
     # that don't contain a minis to balance the learning.
-    all_X, all_y = filter_windows(all_X, all_y)
+    all_x, all_y = filter_windows(all_x, all_y)
 
-    all_X = torch.from_numpy(all_X).float()
+    all_x = torch.from_numpy(all_x).float()
     all_y = torch.from_numpy(all_y).float()
-    dataset = torch.utils.data.TensorDataset(all_X, all_y)
+    dataset = torch.utils.data.TensorDataset(all_x, all_y)
 
     # Split dataset into training group and testing group. As we are using a small set
     # of data -> 80% training, 20% testing.
@@ -141,20 +141,20 @@ def _loss(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
     :param y_true: tensor containing the ground truth (peak or no peak)
     """
     # Class loss (window contains a peak or not).
-    loss = nn.BCELoss()(y_pred[:,0], y_true[:,0])
-    
+    loss = nn.BCELoss()(y_pred[:, 0], y_true[:, 0])
+
     # Mean squared loss (peak position in window) if a peak is present.
-    loss += nn.MSELoss()(y_pred[:,1], y_true[:,1])
+    loss += nn.MSELoss()(y_pred[:, 1], y_true[:, 1])
     return loss
 
 
 def _class_accuracy(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
     """ Compute the accuracy of the model on the class prediction. """
-    correct = (y_pred[:,0] > 0.5) == (y_true[:,0] > 0.5)
+    correct = (y_pred[:, 0] > 0.5) == (y_true[:, 0] > 0.5)
     return correct.float().mean()
 
 
-def _position_error(X: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) \
+def _position_error(x: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor) \
         -> torch.Tensor:
     """
     Compute the peak position prediction error within the window. The root mean squared
@@ -162,26 +162,26 @@ def _position_error(X: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor)
     Note: the window not containing a peak has its peak position set to 0 (within window
     peak dead zone) to make sure it doesn't impact the positions lost.
 
-    :param X: tensor containing the windowed data of the timeseries
+    :param x: tensor containing the windowed data of the timeseries
     :param y_pred: tensor containing the predictions of the model (peak position)
     :param y_true: tensor containing the ground truth (peak position)
     """
     # Get the percentage of the window where the peaks are located.
-    t_pred_perc = y_pred[:,1]
-    t_true_perc = y_true[:,1]
-    
+    t_pred_perc = y_pred[:, 1]
+    t_true_perc = y_true[:, 1]
+
     # Get the amplitude values of the peaks.
-    batch_size = X.shape[0]
-    index_pred = torch.mul(t_pred_perc, X.shape[2]).reshape([batch_size,1,1]).long()
-    index_true = torch.mul(t_true_perc, X.shape[2]).reshape([batch_size,1,1]).long()
-    amp_pred = torch.take_along_dim(X, indices=index_pred, dim=2).reshape(batch_size)
-    amp_true = torch.take_along_dim(X, indices=index_true, dim=2).reshape(batch_size)
-    
+    batch_size = x.shape[0]
+    index_pred = torch.mul(t_pred_perc, x.shape[2]).reshape([batch_size, 1, 1]).long()
+    index_true = torch.mul(t_true_perc, x.shape[2]).reshape([batch_size, 1, 1]).long()
+    amp_pred = torch.take_along_dim(x, indices=index_pred, dim=2).reshape(batch_size)
+    amp_true = torch.take_along_dim(x, indices=index_true, dim=2).reshape(batch_size)
+
     # Combine the time/amplitude of the predictions and targets.
     pred = torch.stack((t_pred_perc, amp_pred), dim=1)
     target = torch.stack((t_true_perc, amp_true), dim=1)
-    
-    # Compute the mean squared error between the time/amplitude coordinates of the 
+
+    # Compute the mean squared error between the time/amplitude coordinates of the
     # predicted peak and the target peak.
     error = nn.MSELoss()(pred, target)
     return error.float().mean()
@@ -214,35 +214,35 @@ def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer
         epoch_loss = 0
         epoch_acc = 0
         epoch_pos_err = 0
-        
+
         # Loop over the training data
-        for batch_idx, (X, y) in enumerate(train_loader):
+        for batch_idx, (x, y) in enumerate(train_loader):
             # Zero the gradients
             optimizer.zero_grad()
 
             # Move data to device
-            X = X.to(device)
+            x = x.to(device)
             y = y.to(device)
 
             # Forward pass
-            y_pred = model(X)
+            y_pred = model(x)
 
             # Check if a minipeak is part of this batch
             y = _peaks_info(y, no_peaks_padding=no_peaks_zone)
 
             # Backward pass
-            loss.backward()
+            _loss.backward()
             optimizer.step()
 
             # Move data to cpu
-            X = X.cpu()
+            x = x.cpu()
             y = y.cpu()
             y_pred = y_pred.cpu()
 
             # Compute loss and accuracy
             loss = _loss(y_pred, y)
             acc = _class_accuracy(y_pred, y)
-            pos_err = _position_error(X, y_pred, y)
+            pos_err = _position_error(x, y_pred, y)
 
             # Update the epoch loss and accuracy
             epoch_loss += loss.item()
@@ -281,29 +281,29 @@ def _evaluate(experiment_folder: Path, model: nn.Module,
     validation = ValidationResults()
 
     # Loop over the validation data
-    for X, y in test_data_loader:
+    for x, y in test_data_loader:
         # Move data to device
-        X = X.to(device)
+        x = x.to(device)
         y = y.to(device)
 
         # Forward pass
-        y_pred = model(X)
+        y_pred = model(x)
 
         # Check if a minipeak is part of this batch
         y = _peaks_info(y, no_peaks_padding=no_peaks_zone)
 
         # Move data to cpu
-        X = X.cpu()
+        x = x.cpu()
         y = y.cpu()
         y_pred = y_pred.cpu()
 
         # Compute the loss and accuracy
         loss = _loss(y_pred, y)
         acc = _class_accuracy(y_pred, y)
-        pos_err = _position_error(X, y_pred, y)
-        true_pos, false_pos = save_false_positives_to_image(experiment_folder, X,
+        pos_err = _position_error(x, y_pred, y)
+        true_pos, false_pos = save_false_positives_to_image(experiment_folder, x,
                                                             y_pred, y.numpy())
-        true_neg, false_neg = save_false_negatives_to_image(experiment_folder, X,
+        true_neg, false_neg = save_false_negatives_to_image(experiment_folder, x,
                                                             y_pred, y.numpy())
 
         # Update the validation loss and accuracy
@@ -311,13 +311,13 @@ def _evaluate(experiment_folder: Path, model: nn.Module,
                                false_pos, true_neg, false_neg)
 
     # Compute final validation loss, accuracy, precision and recall
-    logging.info(f'\nValidation results:')
+    logging.info('\nValidation results:')
     logging.info(f'loss      = {validation.loss():.4f}')
     logging.info(f'accuracy  = {validation.accuracy():.4f}')
     logging.info(f'pos error = {validation.position_error():.4f}')
     logging.info(f'precision = {validation.precision():.4f}')
     logging.info(f'recall    = {validation.recall():.4f}')
-    
+
     return validation
 
 
@@ -341,14 +341,14 @@ def main() -> None:
     optimizer = optim.Adam(model.parameters(),
                            lr=args.learning_rate,
                            weight_decay=args.weight_decay)
-    
+
     # Define window area where peaks are ignored
     no_peaks_zone = int(args.window_size/4)
-    
+
     # Train the model
     _train(experiment_folder, model, optimizer, train_data_loader, args.epochs,
            no_peaks_zone, device)
-    
+
     # Evaluate the model
     validation = _evaluate(experiment_folder, model, test_data_loader, no_peaks_zone,
                            device)

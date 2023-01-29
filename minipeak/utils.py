@@ -2,7 +2,7 @@ import json
 from matplotlib import pyplot as plt
 import numpy as np
 from pathlib import Path
-import  pandas as pd
+import pandas as pd
 import time
 from typing import Optional, Tuple
 import uuid
@@ -47,7 +47,7 @@ def filter_windows(windows_amplitude: np.ndarray, windows_peaks: np.ndarray) -> 
         Tuple[np.ndarray, np.ndarray]:
     """
     Get same amount of data with and without mini peaks in them to balance the learning.
-    
+
     :param windows_amplitude: windows of amplitude timeseries
     :param windows_peaks: windows of peaks timeseries
     :return: filtered windows of amplitude and peaks timeseries with same amount of
@@ -72,7 +72,7 @@ def filter_windows(windows_amplitude: np.ndarray, windows_peaks: np.ndarray) -> 
     indices_to_keep = np.concatenate([win_peaks_indices, win_no_peaks_indices])
 
     return np.take(windows_amplitude, indices_to_keep, axis=0), \
-           np.take(windows_peaks, indices_to_keep, axis=0)
+        np.take(windows_peaks, indices_to_keep, axis=0)
 
 
 def create_experiment_folder(root_folder_path: Path) -> Path:
@@ -100,7 +100,7 @@ def save_false_negatives_to_image(experiment_folder: Path, x: np.ndarray,
     :param y: correct currated peaks or absence of peak for each window
     :return: number of true negatives and false negatives
     """
-    false_neg_path = experiment_folder / f'false_negatives'
+    false_neg_path = experiment_folder / 'false_negatives'
     false_neg_path.mkdir(parents=True, exist_ok=True)
 
     false_neg = 0
@@ -128,9 +128,9 @@ def save_false_positives_to_image(experiment_folder: Path, x: np.ndarray,
     :param y: correct currated peaks or absence of peak for each window
     :return: number of true positives and false positives
     """
-    false_pos_path = experiment_folder / f'false_positives'
+    false_pos_path = experiment_folder / 'false_positives'
     false_pos_path.mkdir(parents=True, exist_ok=True)
-    correct_pos_path = experiment_folder / f'correct_positives'
+    correct_pos_path = experiment_folder / 'correct_positives'
     correct_pos_path.mkdir(parents=True, exist_ok=True)
 
     false_pos = 0
@@ -153,7 +153,7 @@ def save_false_positives_to_image(experiment_folder: Path, x: np.ndarray,
 def save_window_to_image(output_file: Path, amplitude: np.ndarray,
                          pred_peak_pos_perc: Optional[float],
                          target_peak_pos_perc: Optional[float],
-                         title: str) -> None:    
+                         title: str) -> None:
     """ Save window of amplitude timeseries with or without peak to image."""
     # Plot data
     fig, ax = plt.subplots()
@@ -161,7 +161,7 @@ def save_window_to_image(output_file: Path, amplitude: np.ndarray,
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('amplitude (mV)')
     ax.plot(amplitude, label='amplitude')
-    
+
     # Create mini peaks timeseries based on position of the peak
     if pred_peak_pos_perc:
         peaks_time, peaks_amp = \
@@ -171,7 +171,7 @@ def save_window_to_image(output_file: Path, amplitude: np.ndarray,
         peaks_time, peaks_amp = \
             peak_percent_to_time_series(target_peak_pos_perc, amplitude)
         ax.plot(peaks_time, peaks_amp, 'o', label='target peak')
-    
+
     ax.legend()
     fig.savefig(output_file)
     plt.close(fig)
@@ -179,7 +179,7 @@ def save_window_to_image(output_file: Path, amplitude: np.ndarray,
 
 def save_experiment_to_json(experiment_folder: Path, epochs: int, learning_rate: float,
                             weight_decay: float, window_size: int, loss: float,
-                            accuracy: float , pos_error: float, precision: float,
+                            accuracy: float, pos_error: float, precision: float,
                             recall: float) -> None:
     """ Save experiment hyperparameters and evalutation results to json. """
     exp_dict = {
@@ -198,6 +198,6 @@ def save_experiment_to_json(experiment_folder: Path, epochs: int, learning_rate:
             'recall': recall
         }
     }
-    
+
     with open(experiment_folder / 'experiment.json', 'w') as f:
         json.dump(exp_dict, f, indent=4)
