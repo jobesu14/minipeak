@@ -46,7 +46,7 @@ To test manually the code quality, go at the root of `minipeak` project:
 - [x] implement inference code example on a new datasets
 - [x] use a logger
 - [x] code documentation
-- [ ] mypy and flake formatting (no need of HTML doc)
+- [x] mypy and flake formatting (no need of HTML doc)
 - [ ] improve readme so that people understand wht this repo is about
 - [x] refactore
 - [ ] resample abf timeserie based on Hz that user can set as param instead of hard coded sampling
