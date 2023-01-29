@@ -16,7 +16,7 @@ class CNN(nn.Module):
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.25)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Convolution layers
         x = self.conv1(x)
         x = torch.relu(x)

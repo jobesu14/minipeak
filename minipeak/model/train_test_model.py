@@ -49,7 +49,7 @@ class ValidationResults:
 
     def add_results(self, loss: float, accuracy: float, pos_err: float,
                     true_positives: int, false_positives: int, true_negatives: int,
-                    false_negatives: int):
+                    false_negatives: int) -> None:
         self.nb_samples += 1
         self.sum_loss += loss
         self.sum_accuracy += accuracy
@@ -139,6 +139,7 @@ def _loss(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
 
     :param y_pred: tensor containing the predictions of the model (peak or no peak)
     :param y_true: tensor containing the ground truth (peak or no peak)
+    :return: the loss of the model
     """
     # Class loss (window contains a peak or not).
     loss = nn.BCELoss()(y_pred[:, 0], y_true[:, 0])
@@ -189,7 +190,7 @@ def _position_error(x: torch.Tensor, y_pred: torch.Tensor, y_true: torch.Tensor)
 
 def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer,
            train_loader: torch.utils.data.DataLoader, epochs: int, no_peaks_zone: int,
-           device: torch.device) -> float:
+           device: torch.device) -> None:
     """
     Main loop to train the model.
 
@@ -211,9 +212,9 @@ def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer
     # Train model
     for epoch in range(epochs):
         # Initialize the accuracy and loss for the epoch
-        epoch_loss = 0
-        epoch_acc = 0
-        epoch_pos_err = 0
+        epoch_loss = 0.0
+        epoch_acc = 0.0
+        epoch_pos_err = 0.0
 
         # Loop over the training data
         for batch_idx, (x, y) in enumerate(train_loader):
@@ -230,10 +231,6 @@ def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer
             # Check if a minipeak is part of this batch
             y = _peaks_info(y, no_peaks_padding=no_peaks_zone)
 
-            # Backward pass
-            _loss.backward()
-            optimizer.step()
-
             # Move data to cpu
             x = x.cpu()
             y = y.cpu()
@@ -243,6 +240,10 @@ def _train(experiment_folder: Path, model: nn.Module, optimizer: optim.Optimizer
             loss = _loss(y_pred, y)
             acc = _class_accuracy(y_pred, y)
             pos_err = _position_error(x, y_pred, y)
+
+            # Backward pass
+            loss.backward()
+            optimizer.step()
 
             # Update the epoch loss and accuracy
             epoch_loss += loss.item()

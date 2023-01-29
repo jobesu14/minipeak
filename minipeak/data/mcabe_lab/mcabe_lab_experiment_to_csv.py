@@ -66,8 +66,7 @@ def main() -> None:
     else:
         abf_file = args.abf_folder / f'{exp_name}.abf'
         _write_experiment_to_csv(args.xls_file, abf_file, args.csv_folder, exp_name,
-                                 args.sampling_rate, args.remove_trend,
-                                 args.remove_trend_win_ms)
+                                 args.sampling_rate, args.remove_trend_win_ms)
 
 
 if __name__ == '__main__':

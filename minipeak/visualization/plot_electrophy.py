@@ -13,7 +13,7 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _plot_electrophy(abf_file) -> None:
+def _plot_electrophy(abf_file: Path) -> None:
     # load data from abf file
     abf = pyabf.ABF(abf_file)
     time = abf.sweepX

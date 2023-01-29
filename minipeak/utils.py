@@ -108,7 +108,7 @@ def save_false_negatives_to_image(experiment_folder: Path, x: np.ndarray,
     for amplitude, pred, target in zip(x, y_pred, y):
         if pred[0] < 0.5 and target[0] > 0.5:
             false_neg += 1
-            image_path = f'{false_neg_path}/{uuid.uuid1()}.png'
+            image_path = false_neg_path / f'{uuid.uuid1()}.png'
             save_window_to_image(image_path, amplitude[0], None, target[1],
                                  'False negatives')
         elif pred[0] < 0.5 and target[0] < 0.5:
@@ -138,12 +138,12 @@ def save_false_positives_to_image(experiment_folder: Path, x: np.ndarray,
     for amplitude, pred, target in zip(x, y_pred, y):
         if pred[0] > 0.5 and target[0] < 0.5:
             false_pos += 1
-            image_path = f'{false_pos_path}/{uuid.uuid1()}.png'
+            image_path = false_pos_path / f'{uuid.uuid1()}.png'
             save_window_to_image(image_path, amplitude[0], pred[1], None,
                                  'False positives')
         elif pred[0] > 0.5 and target[0] > 0.5:
             true_pos += 1
-            image_path = f'{correct_pos_path}/{uuid.uuid1()}.png'
+            image_path = correct_pos_path / f'{uuid.uuid1()}.png'
             save_window_to_image(image_path, amplitude[0], pred[1], target[1],
                                  'Correct positives')
 
