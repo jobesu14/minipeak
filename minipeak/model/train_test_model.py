@@ -12,7 +12,7 @@ from minipeak.network.cnn_model import CNN
 from minipeak.preprocessing import load_training_datasets
 from minipeak.utils import \
     save_false_positives_to_image, save_false_negatives_to_image, \
-    filter_data_window, create_experiment_folder, save_experiment_to_json, \
+    filter_windows, create_experiment_folder, save_experiment_to_json, \
     save_training_results_to_csv
 # from minipeak.visualization import plot_training_curves
 
@@ -93,7 +93,7 @@ def _training_data(csv_folder: Path, window_size: int, batch_size: int) \
     all_X, all_y = load_training_datasets(csv_folder, window_size)
     # We want to have the same amount of windows that contain a minis and windows
     # that don't contain a minis to balance the learning.
-    all_X, all_y = filter_data_window(all_X, all_y)
+    all_X, all_y = filter_windows(all_X, all_y)
 
     all_X = torch.from_numpy(all_X).float()
     all_y = torch.from_numpy(all_y).float()

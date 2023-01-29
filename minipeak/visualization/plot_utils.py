@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from minipeak import styles as ps
-from minipeak.utils import convert_minis_to_amplitude
+from minipeak.utils import convert_peaks_to_amplitude
 
 
 def plot_training_windows(amp_win: np.ndarray, minis_win: np.ndarray) -> None:
@@ -19,7 +19,7 @@ def plot_training_windows(amp_win: np.ndarray, minis_win: np.ndarray) -> None:
     
     # iterate over all windows and plot them
     for amplitude, minis in zip(amp_win, minis_win):
-        peaks_time, peaks_amp = convert_minis_to_amplitude(amplitude, minis)
+        peaks_time, peaks_amp = convert_peaks_to_amplitude(amplitude, minis)
         # plot data
         _, ax = plt.subplots()
         ax.plot(amplitude, label='amplitude')
