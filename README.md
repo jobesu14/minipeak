@@ -1,52 +1,36 @@
 # Minipeak #
-A Python package to automatically detect minis peaks from electrophysiology.
-The electrophysiology data are expected to be in a abf file format.
+
+A deep learning based method to automatically identify [miniature EPSPs events](https://en.wikipedia.org/wiki/Excitatory_postsynaptic_potential#Miniature_EPSPs_and_quantal_analysis) from electrophysiology data.
+
+The input of the system is an electrophysiology experiment data and the output is the timestamp and amplitude of the miniature EPSPs events (aka mini peaks). As shown in the graph below it is not trivial to design a handcrafted algorithm to identify the mini peaks because the shape of the signal is the defining discriminator (the amplitude of the signal alone is not sufficient).
+
+![Alt text](media/peaks_detection_graph.png)
+
+The main goal of this toy project is for me to apply what I learnt in the diverse deep learing courses on a real world problem from scratch.
 
 # Installation
 
-## Requirements
+## Pytorch
 
-### User
+Install pytorch following [the official instructions](https://pytorch.org/get-started/locally/).
 
-Installing Gastonpy locally:
+
+## Other dependencies
+
+From the root folder of this repositiory:
+
 ```
 pip3 install .
 ```
 
-### Developper
+# Method
 
-Optionally, you can use the `pip3 install -e .` option to install in editable mode.
+TODO explain and pinpoint relevant code:
+- input/output data for training
+- 1D CNN choice and archi
+- overlapping windows
+- improve with transformer
 
-To install the tools for developpement (listed in `setup.py` in `extras_require`), use:
-```
-pip3 install .[dev]
-```
+# Results
 
-# Code quality
-
-To improve Python code quality, the following frameworks have been choosen:
-
-* [pytest](https://docs.pytest.org/en/6.2.x/) automated tests framework that supports unittest
-* [flake8](https://flake8.pycqa.org/en/latest/index.html) (See the config in `.flake8`)
-* [mypy](https://github.com/python/mypy) is an optional static type checker for Python.
-  See the config in `.mypy.ini`.
-
-## Manually
-
-To test manually the code quality, go at the root of `minipeak` project:
-
-* Unit testing: `pytest`
-* Linter: `flake8`
-* Static type checker: `mypy .`
-
-# Todo
-
-- [x] implement training summary (hyper-parameters, network parameters, accuracy, precision, recall, loss, ...)
-- [x] implement peak position model output
-- [x] implement inference code example on a new datasets
-- [x] use a logger
-- [x] code documentation
-- [x] mypy and flake formatting (no need of HTML doc)
-- [ ] improve readme so that people understand wht this repo is about
-- [x] refactore
-- [ ] resample abf timeserie based on Hz that user can set as param instead of hard coded sampling
+recall, precision, accuracy achieved
