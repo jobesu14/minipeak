@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 
 from minipeak import styles as ps
-from minipeak.network.cnn_model import CNN
+from minipeak.models.cnn_model import CNN
 from minipeak.preprocessing import split_into_overlapping_windows, read_abf, \
     remove_low_freq_trend
 

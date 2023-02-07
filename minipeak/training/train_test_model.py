@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from typing import Tuple
 
-from minipeak.network.cnn_model import CNN
+from minipeak.models.cnn_model import CNN
 from minipeak.preprocessing import load_training_datasets
 from minipeak.utils import \
     save_false_positives_to_image, save_false_negatives_to_image, \
@@ -27,7 +27,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument('--batch-size', type=int, default=32, help='batch size')
     parser.add_argument('--learning-rate', type=float, default=1e-4, help='learning rate')
     parser.add_argument('--weight-decay', type=float, default=1e-5, help='weight decay')
-    parser.add_argument('--window-size', type=int, default=100, help='window size in ms')
+    parser.add_argument('--window-size', type=int, default=80, help='window size in ms')
     parser.add_argument('--no-cuda', action='store_true', help='disable cuda')
     return parser.parse_args()
 
