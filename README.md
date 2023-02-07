@@ -49,7 +49,7 @@ Please take a look at the `minipeak.data` submodule for an example of how to pre
 To train the network, the script `train_test_model.py` is used. Here is an example:
 
 ```
-python minipeak/training/train_test_model.py exemple_data/ training_output/ --epochs 1000 --window-size 80
+python minipeak/training/train_test_model.py example_data/ training_output/ --epochs 1000 --window-size 80
 ```
 
 See `train_test_model.py` or do `python minipeak/training/train_test_model.py -h` to get the full list of available settings.
@@ -69,7 +69,7 @@ The output of the training is the following files structure that will be saved u
 The inference just take the raw electrophysiology data in [Axon Binary Format (ABF) file](https://www.moleculardevices.com/sites/default/files/en/assets/user-guide/dd/cns/axon-binary-file-format-v2-0-9.pdf).
 
 ```
-python minipeak/training/eval_model.py exemple_data/exemple_inference_data.abf minipeak/weights/model.pt --sampling_rate 100 --remove_trend_win_ms 100 --window-size 80
+python minipeak/training/eval_model.py example_data/example_inference_data.abf minipeak/weights/model.pt --sampling_rate 100 --remove_trend_win_ms 100 --window-size 80
 ```
 
 See `eval_model.py` or do `python minipeak/training/eval_model.py -h` to get the full list of available settings.
@@ -89,11 +89,20 @@ The output of the script is a csv file containing the list of detected mini peak
 # Method
 
 TODO explain and pinpoint relevant code:
-- input/output data for training
 - 1D CNN choice and archi
 - overlapping windows
 - improve with transformer
 
 # Results
 
-recall, precision, accuracy achieved
+## Training evolution
+
+![Alt text](media/training_evol.png)
+
+## Performance achieved
+
+Test set results:
+- *accuracy* = 0.9430
+- *precision* = 0.9102
+- *recall* = 0.9128
+-  *mini peak position mean error within widow* <1ms
